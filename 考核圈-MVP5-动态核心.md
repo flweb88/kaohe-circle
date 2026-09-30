@@ -1,11 +1,11 @@
-# 考核圈 · MVP-5 动态核心（v3.5.0）
+# 考核圈 · MVP-5 动态核心（v3.5.0 已上线；v3.5.5 X 帖文结构对齐 开发中）
 
 ## 上下文（Context）
 
 - **所属项目**：考核圈（考核小管家社交版）——总览与完整目录见 [考核圈-项目总览与开发计划.md](./考核圈-项目总览与开发计划.md)
-- **前置依赖**：MVP-1 登录注册（v3.1.0 ✅）、MVP-2 首页蓝色主题+四tab导航（v3.2.0 ✅）、MVP-3 个人中心（v3.3.0 ✅）、MVP-4 首页卡片化（v3.4.0 ✅ 随 v3.5.0 一并上线）；follow.php 关注落库已上线
-- **后续衔接**：[MVP-6 用户关系网](./考核圈-MVP6-用户关系网.md)（@跳转/用户主页）、[MVP-7 消息私信与通知](./考核圈-MVP7-消息私信与通知.md)（通知触发）、[MVP-8 增强打磨](./考核圈-MVP8-增强打磨.md) 复用
-- **状态**：✅ **已上线（2026-09-30）**——54 条验收矩阵通过（明细 `artifacts/复核包-MVP5-v3.5.0.md`）；源码 `f842674`+`bd6e499`；web 库 `b4cfe75`（deploy）+`ef9d771`（fix）；线上冒烟（注册/发帖/feed/媒体 pending/点赞）全过并清理；部署后修复：①`manifest_tool.php --sweep` flag 用 isset 判定（getopt 无参 flag 返回 false）；②worker 调 manifest_tool 走免密 sudo（`/etc/sudoers.d/kaohe-worker` 白名单，双 php82 路径），解决 http 属主数据文件写权限；③Mac 压缩工人已启用（launchd `com.kaohe.worker`，45s 轮询），pending→ready 闭环实测通过
+- **前置依赖**：MVP-1 登录注册（v3.1.0 ✅）、MVP-2 首页蓝色主题+四tab导航（v3.2.0 ✅）、MVP-3 个人中心（v3.3.0 ✅）、MVP-4 首页卡片化（v3.4.0 ✅）、v3.5.0~v3.5.4 已上线（v3.5.3/3.5.4 于 2026-10-01 合并部署）
+- **后续衔接**：[MVP-6 用户关系网](./考核圈-MVP6-用户关系网.md)、[MVP-7 消息私信与通知](./考核圈-MVP7-消息私信与通知.md)、[MVP-8 增强打磨](./考核圈-MVP8-增强打磨.md)
+- **状态**：v3.5.0~v3.5.4 ✅ 已上线；**v3.5.5（X 帖文结构对齐）🔧 开发中**——用户 2026-10-01 提供《X 发帖/评论/回复/转发完整结构逻辑》工程规格（本地归档副本见 `/tmp/x_structure.md` 与线上 web/使用说明.md 旁），要求比对后修改总览与本文档后开工
 
 ---
 
@@ -131,3 +131,82 @@
 
 - 本 MVP 范围有任何改动（功能/修 bug/数据模型变更），同步更新本文档并更新总览第 3/7/9/10 节。
 - 完成上线后：状态 → ✅ 已上线，并在总览第 3.1 节版本表登记。
+
+---
+
+## 11. v3.5.5 X 帖文结构对齐（实施口径，开发中）
+
+> 依据：用户 2026-10-01 提供的《X 发帖/评论/回复/转发完整结构与逻辑说明》工程规格（X 官方帮助中心+API 文档整理）。核心主张：**Post 是统一内容原子；Reply/Quote = 新 Post + 关系字段；Repost = 用户→原帖的转发关系（不复制正文）；conversation_id 与 reply_to_post_id 分离；Thread 由 Reply+Conversation 实现**。
+
+### 11.1 目标与范围
+
+将动态模块的语义与数据结构对齐 X 帖文结构，**不照搬 X UI 细节，只对齐内核**（规格文档 §122）。
+
+**本期范围（v3.5.5）：**
+1. **数据模型**：posts 统一 Post 原子——新增 `reply_to_post_id` / `conversation_id` / `quoted_post_id` 字段；既有评论迁移为回复帖（一次性迁移+备份）。
+2. **纯转发 Repost**：新增 RepostRelation（`social.php reposts[]`，UNIQUE(user,post_id)）；不建新帖、可取消、互动归原帖、时间线“xxx 转发了”标签；计数归原帖。
+3. **引用 Quote**：现有“转发=生成新帖”语义改名“引用”；帖子带 `quoted_post_id`；引用帖独立 conversation（conversation_id=自身 id）；计数 quote_count 分离。
+4. **Thread 串文**：连续回复自己的帖自动串联展示（作者相同+同一 conversation+连续 reply），不另建模型。
+5. **reply_settings 发布后可改**：发帖人可随时修改回复者范围。
+6. **隐藏回复**：原帖作者可隐藏某条回复（status/标记 hidden，**不删除**），仍可经“已隐藏回复”入口查看。
+7. **通知补类型**：通知类型补 `quote`（被引用）、`repost`（被纯转发，现有 repost 通知按纯转发语义）；`reply` 已有。
+8. **计数口径**：`reply_count` = 直接回复数（reply_to_post_id=该帖），非 conversation 总量；`repost_count`/`quote_count` 分离。
+9. **兼容读取**：历史“转发新帖”（`repost_of`/`quote_comment`）按 Quote 语义展示（引用块），不迁移改写旧帖记录。
+
+**暂不纳入（列 MVP-8/6）：** Top 回复排序、Block/Mute（MVP-6 范围）、编辑帖子（post_versions）、话题/搜索索引、印象计数。
+
+### 11.2 数据模型变更（实施口径）
+
+**posts.php**（schema_v:2）——Post 统一字段：
+
+| 字段 | v3.5.4 现状 | v3.5.5 |
+|---|---|---|
+| `id` | 主帖 id | 不变；迁移的评论 id 加前缀 `c_` |
+| `author` / `text` / `media_ids[]` / `share_card` / `mentions[]` / `reply_policy` / `status` / `createdAt` | 有 | 不变 |
+| `reply_to_post_id` | 无 | **新增**：回复帖指向直接父帖 |
+| `conversation_id` | 无 | **新增**：根帖 id（普通/引用帖=自身 id；回复帖=根帖 id） |
+| `quoted_post_id` | 无（有 `repost_of` / `quote_comment`） | **新增**：引用对象；旧字段按 Quote 兼容读取 |
+| `schema_v` | 1 | 2 |
+
+**social.php**：
+- `reposts[]` 语义变化：v3.5.5 起为**纯转发记录**（`{post_id,user,at}`，UNIQUE），不再生成新帖。
+- `comments[]`：迁移后清空或保留为兼容空壳（开发定稿：迁移成功后删除 comments 数据，评论点赞/收藏 `comment_likes`/`comment_bookmarks` 保留按旧评论 id 关联；新回复一律走 post 接口）。
+
+**notify.php**：type 枚举扩展 `quote`；`repost` 语义=纯转发通知；`reply` 已有。
+
+### 11.3 接口变更（实施口径）
+
+- `post`：支持 `reply_to_post_id`（回复）、`quoted_post_id`（引用）；校验目标帖存在且非 deleted、reply_policy 越权 403；回复时自动继承根帖 conversation_id。
+- 新 action：`repost`（纯转发，幂等 UNIQUE）/ `unrepost`（取消）；`repost_of` 新帖生成能力迁移到 `quote`。
+- `comment`：**废弃/重定向**到 `post`（reply_to_post_id）——前端评论入口走后端 reply 语义；旧评论互动接口（comment_like 等）保留兼容读取既有迁移数据。
+- `comments_of`：按 `conversation_id` 返回回复树（根+直接回复+嵌套归并，at 正序），兼容返回结构（root/replies）不变。
+- `reply_settings` 新 action 或复用：作者修改自己帖子的 reply_policy（校验作者身份）。
+- `hide_reply` / `unhide_reply`：原帖作者隐藏/取消隐藏某回复（标记 hidden，不删）。
+- `feed`：join 纯转发（时间线项=原帖+“转发了 by 谁”包装层）、引用帖引用块、Thread 串联；回复帖默认不进 feed 主列表（X 行为：reply 进入的是原帖对话树/作者主页，由开发按现有展示策略定稿）。
+- `notify`：quote/repost 通知类型输出。
+
+### 11.4 前端变更（实施口径）
+
+- 帖子卡片操作条：🔁 点击展开「转发（纯转发）/ 引用」两项；纯转发后卡片显示“xx 转发了”包装层（X RepostWrapper），可取消；引用=现有引用块（文案“引用”）。
+- 详情页（v3.5.4 open-post-detail）：评论区=回复树（根回复+嵌套回复「回复 @谁」），回复入口走 reply 语义；Thread 串联展示（连续回复自己）。
+- 原帖作者在回复条上可「隐藏/取消隐藏」；被隐藏回复折叠进“已隐藏回复”入口。
+- 发帖/详情页回复范围选择器：发布后作者可修改（小按钮）。
+- 通知中心：quote/repost 类型图标与文案。
+
+### 11.5 迁移与兼容（硬约束）
+
+- **迁移脚本**：PHP 一次性脚本（NAS 执行），把既有 `social.php comments[]` → `posts.php` 回复帖（`c_<旧id>`、reply_to_post_id、conversation_id=根帖 id、author、text、media_ids、at、status）；执行前备份 `posts.php`/`social.php` 到 `backups/`；幂等（schema_v 检查）；失败回滚。
+- **真实数据零损坏**：线上 3 条主帖 + 既有评论 + 评论媒体/点赞/收藏全部核对迁移后完好；测试账号隔离测试，测后零残留。
+- **兼容读取**：旧 `repost_of`/`quote_comment` 帖按 Quote 引用块展示；旧评论互动数据按旧 id 关联展示。
+
+### 11.6 验收要点（开发自测清单）
+
+1. 迁移：备份→迁移→核对（评论数/媒体/点赞收藏/时间不变）→幂等（重复执行不重复迁移）→回滚演练（备份恢复）。
+2. 纯转发：转发不建帖、计数归原帖、取消后计数回落、时间线“xx 转发了”标签、原帖软删后转发不展示。
+3. 引用：新帖+引用块（含媒体）、独立 conversation、原帖软删显示“引用的原帖不可用”、回复引用帖不拉原帖作者。
+4. 回复树：2 层嵌套、conversation_id 一致、reply_count=直接回复数、Thread 串联。
+5. reply_settings 发布后可改：改后越权回复 403。
+6. 隐藏回复：作者隐藏/取消隐藏、非作者 403、隐藏后仍可经入口查看。
+7. 通知：quote/repost/reply 类型正确触发与已读。
+8. 兼容：历史转发帖引用块展示正常；v3.5.0~v3.5.4 验收用例回归。
+9. 三端适配、品牌蓝、页脚 v3.5.5、橙色清零、git 双库提交、**停待部署**。
