@@ -47,13 +47,13 @@ if ($id !== '' && !preg_match('/^[a-f0-9]{8,64}$/', $id)) {
     fwrite(STDERR, "bad id\n"); exit(2);
 }
 
-// 角色校验规则：返回 [允许扩展名数组, 允许的 MIME 前缀数组]
+// 角色校验规则：返回 [允许扩展名数组, 允许的 MIME 前缀数组]（v3.5.3：图片补 bmp/avif，视频补 mkv/avi，音频补 flac/opus）
 function role_rules(string $role, string $kind): array {
     switch ($role) {
         case 'orig':
-            if ($kind === 'image') return [['jpg','jpeg','png','webp','heic'], ['image/']];
-            if ($kind === 'video') return [['mp4','mov','m4v'], ['video/']];
-            if ($kind === 'audio') return [['mp3','m4a','aac','ogg'], ['audio/']];
+            if ($kind === 'image') return [['jpg','jpeg','png','webp','heic','bmp','avif'], ['image/']];
+            if ($kind === 'video') return [['mp4','mov','m4v','mkv','avi','webm'], ['video/']];
+            if ($kind === 'audio') return [['mp3','m4a','aac','ogg','opus','flac'], ['audio/']];
             return [[], []];
         case 'sm':
         case 'md':

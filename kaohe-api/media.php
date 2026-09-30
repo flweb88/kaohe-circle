@@ -11,20 +11,34 @@ require_once __DIR__ . '/common.php';
 
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 
-// MIME 白名单：mime => [kind, ext]
+// MIME 白名单：mime => [kind, ext]（v3.5.3 扩展：HEIC/HEIF/BMP/AVIF 图片、M4V/MKV/AVI 视频、OGG/OPUS/FLAC/AAC 音频）
 const MIME_WHITELIST = [
     'image/jpeg' => ['image', 'jpg'],
     'image/png'  => ['image', 'png'],
     'image/webp' => ['image', 'webp'],
     'image/gif'  => ['image', 'gif'],
+    'image/heic' => ['image', 'heic'],        // iPhone 相册 HEIC（Chrome 不直接支持，工人 orig 一律转 jpg）
+    'image/heif' => ['image', 'heic'],        // finfo 对 HEIF 可能返回 image/heif
+    'image/bmp'  => ['image', 'bmp'],
+    'image/x-ms-bmp' => ['image', 'bmp'],     // 实测 finfo 对 BMP 返回 x-ms-bmp（getimagesize 兜底保留作双保险）
+    'image/avif' => ['image', 'avif'],
     'video/mp4'  => ['video', 'mp4'],
     'video/webm' => ['video', 'webm'],
     'video/quicktime' => ['video', 'mov'],   // iPhone/Mac 默认 .mov（HEVC/H.264），工人压缩时统一转 mp4
+    'video/x-m4v' => ['video', 'm4v'],
+    'video/x-matroska' => ['video', 'mkv'],
+    'video/x-msvideo' => ['video', 'avi'],
     'audio/mpeg' => ['audio', 'mp3'],
     'audio/mp4'  => ['audio', 'm4a'],
     'audio/x-m4a'=> ['audio', 'm4a'],
     'audio/wav'  => ['audio', 'wav'],
     'audio/x-wav'=> ['audio', 'wav'],
+    'audio/ogg'  => ['audio', 'ogg'],
+    'audio/opus' => ['audio', 'opus'],
+    'audio/flac' => ['audio', 'flac'],
+    'audio/x-flac'=> ['audio', 'flac'],      // 部分环境 finfo 对 FLAC 返回 x-flac 别名
+    'audio/aac'  => ['audio', 'aac'],
+    'audio/x-hx-aac-adts' => ['audio', 'aac'], // 实测 ADTS 裸 AAC（iPhone 导出）finfo 返回该 MIME
 ];
 const KIND_MAX_BYTES = ['image' => 10485760, 'audio' => 52428800, 'video' => 209715200];
 
@@ -61,11 +75,13 @@ if ($action === 'upload') {
     }
     list($kind, $ext) = MIME_WHITELIST[$realMime];
 
-    // 客户端扩展名双校验（允许 jpg/jpeg 等同义）
+    // 客户端扩展名双校验（允许 jpg/jpeg、mov/qt、heic/heif 等同义）
     $origExt = strtolower(pathinfo((string)($f['name'] ?? ''), PATHINFO_EXTENSION));
     $extAlias = ['jpg'=>['jpg','jpeg'], 'mp3'=>['mp3'], 'wav'=>['wav'], 'm4a'=>['m4a','mp4a'],
                  'png'=>['png'], 'webp'=>['webp'], 'gif'=>['gif'], 'mp4'=>['mp4'], 'webm'=>['webm'],
-                 'mov'=>['mov','qt']];
+                 'mov'=>['mov','qt'], 'heic'=>['heic','heif'], 'bmp'=>['bmp'], 'avif'=>['avif'],
+                 'm4v'=>['m4v'], 'mkv'=>['mkv'], 'avi'=>['avi'],
+                 'ogg'=>['ogg','opus'], 'opus'=>['opus'], 'flac'=>['flac'], 'aac'=>['aac']];
     $allow = $extAlias[$ext] ?? [$ext];
     if (!in_array($origExt, $allow, true)) {
         json_out(['ok' => false, 'err' => 'type', 'msg' => '文件扩展名与内容不符']);
@@ -129,12 +145,18 @@ if ($action === 'raw') {
     }
     // 二次类型校验：扩展名必须在白名单派生集合内
     $ext = strtolower(pathinfo($real, PATHINFO_EXTENSION));
-    $allowExt = ['jpg','jpeg','png','webp','gif','mp4','webm','mov','mp3','m4a','wav'];
+    $allowExt = ['jpg','jpeg','png','webp','gif','heic','bmp','avif','mp4','webm','mov','m4v','mkv','avi','mp3','m4a','wav','ogg','opus','flac','aac'];
     if (!in_array($ext, $allowExt, true)) json_out(['ok' => false, 'err' => 'type', 'msg' => '类型非法'], 415);
 
     if (!headers_sent()) {
         // video720 一律按 mp4 输出（工人压缩产物统一 mp4 容器，避免 quicktime Content-Type 干扰播放）
         $ct = ($v === 'video720') ? 'video/mp4' : ($rec['mime'] ?? 'application/octet-stream');
+        // v3.5.3：HEIC 图片 orig 已被工人转 jpg、部分容器/格式经处理，Content-Type 跟随文件实际类型（finfo），
+        //           否则 nosniff 下 Chrome 会因 image/heic 头拒绝显示 jpg 数据
+        if ($v !== 'video720' && function_exists('finfo_open')) {
+            $fi2 = finfo_open(FILEINFO_MIME_TYPE);
+            if ($fi2) { $m2 = finfo_file($fi2, $real); finfo_close($fi2); if ($m2) $ct = $m2; }
+        }
         header('Content-Type: ' . $ct);
         header('Content-Length: ' . filesize($real));
         header('Cache-Control: public, max-age=86400');

@@ -129,13 +129,13 @@ if [ ${#files[@]} -eq 0 ]; then
   exit 0
 fi
 
-# ---------------- 类型白名单 ----------------
+# ---------------- 类型白名单（v3.5.3：图片补 bmp/avif，视频补 mkv/avi，音频补 opus/flac） ----------------
 whitelist_kind() {
   case "$1" in
-    jpg|jpeg|png|webp|heic) echo image ;;
-    mp4|mov|m4v)            echo video ;;
-    mp3|m4a|aac|ogg)        echo audio ;;
-    *)                      echo unknown ;;
+    jpg|jpeg|png|webp|gif|heic|heif|bmp|avif) echo image ;;
+    mp4|mov|m4v|mkv|avi|webm)                echo video ;;
+    mp3|m4a|aac|ogg|opus|flac)                echo audio ;;
+    *)                                         echo unknown ;;
   esac
 }
 
@@ -155,13 +155,19 @@ for fpath in "${files[@]}"; do
 
   # ---------- 压缩 ----------
   if [ "$kind" = image ]; then
-    # orig：>3MB 缩到最大边 1080；否则原样
-    if [ "$size" -gt "$IMG_BYTES" ]; then
-      "$SIPS_BIN" -Z 1080 "$fpath" --out "$pdir/$id.o.$ext" >>"$LOG_FILE" 2>&1 || ok_prod=0
+    # HEIC/HEIF：Chrome 不支持 heic 原图直显，orig 一律转 jpg（1080 内，formatOptions 92 保持显示质量）
+    if [ "$ext" = heic ] || [ "$ext" = heif ]; then
+      "$SIPS_BIN" -s format jpeg -s formatOptions 92 -Z 1080 "$fpath" --out "$pdir/$id.o.jpg" >>"$LOG_FILE" 2>&1 || ok_prod=0
+      origf="$id.o.jpg"
     else
-      cp "$fpath" "$pdir/$id.o.$ext"
+      # 其余图片：>3MB 缩到最大边 1080；否则原样
+      if [ "$size" -gt "$IMG_BYTES" ]; then
+        "$SIPS_BIN" -Z 1080 "$fpath" --out "$pdir/$id.o.$ext" >>"$LOG_FILE" 2>&1 || ok_prod=0
+      else
+        cp "$fpath" "$pdir/$id.o.$ext"
+      fi
+      origf="$id.o.$ext"
     fi
-    origf="$id.o.$ext"
     # 缩略图 sm(360)/md(720)，强制 jpg 质量 82
     "$SIPS_BIN" -s format jpeg -s formatOptions 82 -Z 360 "$fpath" --out "$pdir/$id.sm.jpg" >>"$LOG_FILE" 2>&1 || ok_prod=0
     "$SIPS_BIN" -s format jpeg -s formatOptions 82 -Z 720 "$fpath" --out "$pdir/$id.md.jpg" >>"$LOG_FILE" 2>&1 || ok_prod=0
@@ -173,15 +179,27 @@ for fpath in "${files[@]}"; do
       if [ -n "$FFMPEG_BIN" ] && command -v "$FFMPEG_BIN" >/dev/null 2>&1; then
         "$FFMPEG_BIN" -y -i "$fpath" \
           -vf scale=-2:720 -c:v libx264 -preset veryfast -crf 28 \
-          -c:a aac -b:a 128k "$pdir/$id.720.mp4" >>"$LOG_FILE" 2>&1 || ok_prod=0
+          -c:a aac -b:a 128k -movflags +faststart "$pdir/$id.720.mp4" >>"$LOG_FILE" 2>&1 || ok_prod=0
         v720f="$id.720.mp4"
       else
         ok_prod=0; fail_reason="ffmpeg_missing"
         log "video $id >50MB but ffmpeg unavailable; mark failed"
       fi
-    else
+    elif [ "$ext" = mp4 ] || [ "$ext" = webm ]; then
+      # ≤50MB 且浏览器原生可播容器（mp4/webm）：原样回传
       origf="$fname"
-      cp "$fpath" "$pdir/$fname"   # ≤50MB 原样回传
+      cp "$fpath" "$pdir/$fname"
+    else
+      # ≤50MB 非原生容器（mov/m4v/mkv/avi）：ffmpeg 统一转 mp4（H.264+AAC，faststart，原分辨率）
+      if [ -n "$FFMPEG_BIN" ] && command -v "$FFMPEG_BIN" >/dev/null 2>&1; then
+        "$FFMPEG_BIN" -y -i "$fpath" \
+          -c:v libx264 -preset veryfast -crf 23 \
+          -c:a aac -movflags +faststart "$pdir/$id.720.mp4" >>"$LOG_FILE" 2>&1 || ok_prod=0
+        v720f="$id.720.mp4"
+      else
+        ok_prod=0; fail_reason="ffmpeg_missing"
+        log "video $id container-transcode but ffmpeg unavailable; mark failed"
+      fi
     fi
   else # audio：不压缩，原样
     origf="$fname"
