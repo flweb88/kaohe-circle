@@ -515,7 +515,7 @@ footer .fb-link:hover{text-decoration:underline}
 <div id="auth-root" style="display:none"></div>
 <div id="app">
   <main id="main"></main>
-  <footer>考核小管家 v3.5.0 · 考核圈社交版<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
+  <footer>考核小管家 v3.5.1 · 考核圈社交版<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
 </div>
 <nav class="tabbar" id="tabbar">
   <button class="tb" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>首页</button>
@@ -876,7 +876,7 @@ function renderAuth(){
   }
   document.getElementById('auth-root').innerHTML =
     '<div class="rk-wrap">' + brandHtml + body +
-      '<div class="rk-ver">考核圈 · 社交版第一页 v3.5.0</div>' +
+      '<div class="rk-ver">考核圈 · 社交版第一页 v3.5.1</div>' +
     '</div>';
   if (authMode === 'register'){
     refreshCaptcha();
@@ -1576,7 +1576,19 @@ function renderToday(){
     body = '<div class="empty"><div class="t">还没有考核项</div><div>点击「考核项」页新增一个考核项，比如扔垃圾、阅读。</div></div>';
   }
   var backfill = hs.length ? '<button class="btn btn-primary btn-block" data-action="backfill">补打卡</button>' : '';
-  return hero + '<div class="view-title">今日考核 '+cycleInfo+'</div>' + body + (backfill?'<div style="margin-top:14px">'+backfill+'</div>':'') + '<div class="view-title" style="margin-top:22px">娱乐账户</div>' + renderAccount();
+  /* 首页双子页：今日打卡 / 娱乐账户（子 tab 样式照动态页推荐/关注模式） */
+  var homeTab = view.homeTab || 'checkin';
+  var homeTabs = '<div class="feed-tabs">' +
+    '<div class="ft ' + (homeTab==='checkin'?'active':'') + '" data-action="home-tab" data-ht="checkin">今日打卡</div>' +
+    '<div class="ft ' + (homeTab==='account'?'active':'') + '" data-action="home-tab" data-ht="account">娱乐账户</div>' +
+    '</div>';
+  var homeBody;
+  if (homeTab === 'account'){
+    homeBody = renderAccount();
+  } else {
+    homeBody = hero + '<div class="view-title">今日考核 '+cycleInfo+'</div>' + body + (backfill?'<div style="margin-top:14px">'+backfill+'</div>':'');
+  }
+  return homeTabs + homeBody;
 }
 
 /* ==== 视图：考核项 ==== */
@@ -1764,10 +1776,10 @@ function renderMe(){
   var card = '<div class="me-card">' + avHtml +
     '<div style="flex:1;min-width:0"><div class="mn">' + esc(u.nickname || '小笨猪') + '</div>' +
     '<div class="ma">' + esc(u.email || '') + '</div></div></div>';
-  var tabs = '<div class="seg-tabs">' +
-    '<button class="st ' + (view.meTab==='habits'?'active':'') + '" data-action="me-tab" data-mt="habits">考核项管理</button>' +
-    '<button class="st ' + (view.meTab==='history'?'active':'') + '" data-action="me-tab" data-mt="history">历史记录</button>' +
-    '<button class="st ' + (view.meTab==='account'?'active':'') + '" data-action="me-tab" data-mt="account">账号设置</button>' +
+  var tabs = '<div class="feed-tabs">' +
+    '<div class="ft ' + (view.meTab==='habits'?'active':'') + '" data-action="me-tab" data-mt="habits">考核项管理</div>' +
+    '<div class="ft ' + (view.meTab==='history'?'active':'') + '" data-action="me-tab" data-mt="history">历史记录</div>' +
+    '<div class="ft ' + (view.meTab==='account'?'active':'') + '" data-action="me-tab" data-mt="account">账号设置</div>' +
     '</div>';
   var body = '';
   if (view.meTab === 'habits'){
@@ -2022,7 +2034,7 @@ function saveRate(){
 }
 
 /* ==== 渲染入口 ==== */
-var view = { tab:'today', histTab:'settle', circleTab:'recommend', meSeg:'posts', meTab:'habits', dmPeer:null, feedCache:{recommend:null,follow:null} };
+var view = { tab:'today', homeTab:'checkin', histTab:'settle', circleTab:'recommend', meSeg:'posts', meTab:'habits', dmPeer:null, feedCache:{recommend:null,follow:null} };
 var editingId = null, formIcon = 'star', formColor = COLORS[0], formType = 'check';
 /* 底部 tabbar 激活映射：当前 view.tab 对应点亮哪个底部 tab */
 function bottomTabOf(v){
@@ -2813,6 +2825,7 @@ function handleAction(el, e){
     /* ---- MVP-5 动态 ---- */
     case 'open-compose': openCompose(); break;
     case 'circle-tab': view.circleTab = el.getAttribute('data-ct') || 'recommend'; render(); break;
+    case 'home-tab': view.homeTab = el.getAttribute('data-ht') || 'checkin'; render(); break;
     case 'circle-refresh': refreshFeed(); break;
     case 'circle-reload': refreshFeed(); break;
     case 'circle-load-more': loadFeed('follow', false); break;
