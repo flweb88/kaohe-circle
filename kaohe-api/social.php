@@ -1,16 +1,22 @@
 <?php
-/* 考核小管家 v3.5.0 - 考核圈（社交动态）· MVP-5 动态核心
- * actions: staff_card(无鉴权) / feed / post / del / like / unlike / comment / repost /
+/* 考核小管家 v3.5.5 - 考核圈（社交动态）· X 帖文结构对齐
+ * actions: staff_card(无鉴权) / feed / post / del / like / unlike / comment / repost / unrepost /
  *          bookmark / unbookmark / follow / unfollow / following / followers / posts_of /
- *          search_users / score_cards / notify / notify_read / unread
+ *          search_users / score_cards / notify / notify_read / unread /
+ *          reply_settings / hide_reply / unhide_reply /
+ *          comment_like / comment_unlike / comment_bookmark / comment_unbookmark / comment_repost
  * 约定：POST + JSON body，action 走 query string；除 staff_card 外一律 require_login。
  * 数据文件（kaohe-data/，守卫头+JSON，社交数据不进每用户文件）：
- *   posts.php {items:[Post], reqs:{client_req_id:postId}}
- *   social.php {likes:[],comments:[],reposts:[],bookmarks:[]}
+ *   posts.php {items:[Post], reqs:{client_req_id:postId}}   // v3.5.5：Post 统一原子（普通/回复/引用）
+ *   social.php {likes:[],comments:[],reposts:[],bookmarks:[],comment_likes:[],comment_bookmarks:[]}
  *   follows.php {<follower>:[<followee>...]}
  *   notify.php {items:[Notify]}
  *   uploads/manifest.php {items:{<id>:{...}}}
  * 所有写动作一律走 db_transact_json（持锁读改写）。
+ * v3.5.5 语义：
+ *   - reply_to_post_id=直接父帖；conversation_id=根帖 id（普通/引用帖=自身 id，回复帖=根帖 id）；
+ *     quoted_post_id=引用对象；纯转发=reposts[] 关系（不建帖）。
+ *   - comments[] 迁移后清空为壳，新回复一律进 posts.php（schema_v:2）；comment_likes/comment_bookmarks 兼容旧 id。
  */
 require_once __DIR__ . '/common.php';
 
@@ -26,7 +32,7 @@ define('MANIFEST_FILE',  UPLOAD_DIR . 'manifest.php');
 
 const POSTS_DEFAULT   = ['items' => [], 'reqs' => []];
 const SOCIAL_DEFAULT  = ['likes' => [], 'comments' => [], 'reposts' => [], 'bookmarks' => [],
-                         'comment_likes' => [], 'comment_bookmarks' => []];   // v3.5.4：评论级点赞/收藏
+                         'comment_likes' => [], 'comment_bookmarks' => []];   // comment_likes/bookmarks 旧评论 id 兼容读取
 const NOTIFY_DEFAULT  = ['items' => []];
 const MANIFEST_DEFAULT= ['items' => []];
 
@@ -47,6 +53,27 @@ function find_post_by_id($items, $id) {
         if (($p['id'] ?? '') === $id) return $p;
     }
     return null;
+}
+
+// v3.5.5：旧帖 schema_v:1 缺省 conversation_id = 自身 id
+function conv_id_of($p) {
+    return !empty($p['conversation_id']) ? $p['conversation_id'] : ($p['id'] ?? '');
+}
+
+// v3.5.5：reply_policy 校验——作者本人豁免；following=作者关注的人可回；mentioned=被 @ 的人可回
+function reply_policy_allows($targetPost, $meEmail) {
+    $au = $targetPost['author'] ?? '';
+    if ($meEmail === $au) return true;
+    $policy = $targetPost['reply_policy'] ?? 'all';
+    if ($policy === 'all') return true;
+    if ($policy === 'following') {
+        $follows = db_read_json(FOLLOWS_FILE, []);
+        return in_array($meEmail, $follows[$au] ?? [], true);
+    }
+    if ($policy === 'mentioned') {
+        return in_array($meEmail, $targetPost['mentions'] ?? [], true);
+    }
+    return true;
 }
 
 // 追加一条提醒（to/by 邮箱）；已存在同 (to,type,by,postId) 则不重复落库
@@ -93,42 +120,90 @@ function resolve_media($mediaIds, $manifest) {
         $out[] = [
             'id' => $mid, 'kind' => $rec['kind'] ?? 'image', 'mime' => $rec['mime'] ?? '',
             'size' => (int)($rec['size'] ?? 0), 'status' => $rec['status'] ?? 'pending',
-            'url' => $urls, 'files' => $files,   // v3.5.4：文件名映射（下载按钮 fn 参数）
+            'url' => $urls, 'files' => $files,   // 文件名映射（下载按钮 fn 参数）
         ];
     }
     return $out;
 }
 
+// v3.5.5：回复帖(Post) → v3.5.4 前端评论视图（comments_of / comment 返回共用）
+// 互动计数 = likes[]/bookmarks[]（统一 Post 互动）+ comment_likes/comment_bookmarks（旧数据兼容合并）
+function build_reply_view($rp, $rootId, $itemsById, $social, $users, $manifest, $meEmail) {
+    $rid = $rp['id'] ?? '';
+    $likeCount = $bookmarkCount = 0; $liked = $bookmarked = false;
+    foreach (($social['likes'] ?? []) as $r)         { if (($r['post_id'] ?? '') === $rid) { $likeCount++;    if (($r['user'] ?? '') === $meEmail) $liked = true; } }
+    foreach (($social['comment_likes'] ?? []) as $r) { if (($r['comment_id'] ?? '') === $rid) { $likeCount++;    if (($r['user'] ?? '') === $meEmail) $liked = true; } }
+    foreach (($social['bookmarks'] ?? []) as $r)      { if (($r['post_id'] ?? '') === $rid) { $bookmarkCount++; if (($r['user'] ?? '') === $meEmail) $bookmarked = true; } }
+    foreach (($social['comment_bookmarks'] ?? []) as $r) { if (($r['comment_id'] ?? '') === $rid) { $bookmarkCount++; if (($r['user'] ?? '') === $meEmail) $bookmarked = true; } }
+    $authorEmail = $rp['author'] ?? '';
+    $au = $users['users'][$authorEmail] ?? null;
+    $parentId = $rp['reply_to_post_id'] ?? null;
+    $replyUser = null; $replyNick = null;
+    if ($parentId !== null && $parentId !== $rootId && isset($itemsById[$parentId])) {
+        $replyUser = $itemsById[$parentId]['author'] ?? null;
+        if ($replyUser !== null) {
+            $ru = $users['users'][$replyUser] ?? null;
+            $replyNick = $ru['nickname'] ?? '已注销';
+        }
+    }
+    return [
+        'id' => $rid, 'post_id' => $rootId, 'user' => $authorEmail, 'text' => $rp['text'] ?? '',
+        'mentions' => $rp['mentions'] ?? [], 'reply_to' => $parentId,
+        'reply_user' => $replyUser, 'replyNick' => $replyNick,
+        'media' => resolve_media($rp['media_ids'] ?? [], $manifest),
+        'at' => $rp['createdAt'] ?? '', 'status' => 'normal',
+        'authorNick' => $au['nickname'] ?? '已注销',
+        'authorAvatar' => $au['avatar'] ?? 'zodiac:rat',
+        'authorCard' => author_card($authorEmail),
+        'likeCount' => $likeCount, 'liked' => $liked,
+        'bookmarkCount' => $bookmarkCount, 'bookmarked' => $bookmarked,
+        'mine' => ($authorEmail === $meEmail),
+        'hidden' => !empty($rp['hidden']),
+    ];
+}
+
 // 批量 decorate：一次性读 social/manifest，给整批帖子附计数与交互态
-// v3.5.4：$postsDoc 可传入（feed 已读），缺省自读；并 join 引用块（repost_of 原帖 / quote_comment 评论）
+// v3.5.5：quote=quoted_post_id ?? repost_of ?? quote_comment；replyCount/quoteCount/repostWrapper；
+//         commentCount 口径=直接回复数（同 replyCount）
 function decorate_posts($posts, $meEmail, $postsDoc = null) {
     $social = db_read_json(SOCIAL_FILE, SOCIAL_DEFAULT);
     $manifest = manifest_get();
     $users = load_users();
     $po = ($postsDoc !== null && isset($postsDoc['items']) && is_array($postsDoc['items'])) ? $postsDoc : db_read_json(POSTS_FILE, POSTS_DEFAULT);
+    $allItems = $po['items'] ?? [];
     foreach ($posts as &$p) {
         $au = $p['author'] ?? '';
         $a = author_card($au);
         $pid = $p['id'];
-        $likeCount = $commentCount = $repostCount = 0;
+        $likeCount = $repostCount = 0;
         $liked = $reposted = $bookmarked = false;
-        foreach (($social['likes'] ?? []) as $r)    { if (($r['post_id'] ?? '') === $pid) { $likeCount++; if (($r['user']??'') === $meEmail) $liked = true; } }
-        foreach (($social['comments'] ?? []) as $r) { if (($r['post_id'] ?? '') === $pid && ($r['status'] ?? 'normal') === 'normal') $commentCount++; }
-        foreach (($social['reposts'] ?? []) as $r)  { if (($r['post_id'] ?? '') === $pid) { $repostCount++; if (($r['user']??'') === $meEmail) $reposted = true; } }
-        foreach (($social['bookmarks'] ?? []) as $r){ if (($r['post_id'] ?? '') === $pid && ($r['user']??'') === $meEmail) $bookmarked = true; }
+        $latestRepost = null;
+        foreach (($social['likes'] ?? []) as $r)    { if (($r['post_id'] ?? '') === $pid) { $likeCount++; if (($r['user'] ?? '') === $meEmail) $liked = true; } }
+        foreach (($social['reposts'] ?? []) as $r)  {
+            if (($r['post_id'] ?? '') === $pid) {
+                $repostCount++;
+                if (($r['user'] ?? '') === $meEmail) $reposted = true;
+                if ($latestRepost === null || strcmp($r['at'] ?? '', $latestRepost['at'] ?? '') > 0) $latestRepost = $r;
+            }
+        }
+        foreach (($social['bookmarks'] ?? []) as $r){ if (($r['post_id'] ?? '') === $pid && ($r['user'] ?? '') === $meEmail) $bookmarked = true; }
         $p['media'] = resolve_media($p['media_ids'] ?? [], $manifest);
-        // v3.5.4：引用块 join（原帖转发 repost_of / 评论转发 quote_comment），引用式取当前状态
+
+        // v3.5.5：引用块 quoted_post_id ?? repost_of ?? quote_comment（引用式取当前状态）
         $p['quote'] = null;
-        $ref = $p['repost_of'] ?? ($p['quote_comment'] ?? null);
+        $ref = $p['quoted_post_id'] ?? $p['repost_of'] ?? $p['quote_comment'] ?? null;
         if ($ref !== null) {
-            $refKind = !empty($p['repost_of']) ? 'post' : 'comment';
-            $q = null;
-            if ($refKind === 'post') $q = find_post_by_id($po['items'] ?? [], $ref);
-            elseif ($refKind === 'comment') {
-                foreach (($social['comments'] ?? []) as $cc) if (($cc['id'] ?? '') === $ref) { $q = $cc; break; }
+            $isLegacyComment = !empty($p['quote_comment']) && empty($p['quoted_post_id']) && empty($p['repost_of']);
+            $refKind = ($isLegacyComment || strncmp($ref, 'c_', 2) === 0) ? 'comment' : 'post';
+            $q = find_post_by_id($allItems, $ref);
+            if (!$q && $refKind === 'comment') {
+                // 迁移前兼容兜底：旧 comments[] 快照
+                foreach (($social['comments'] ?? []) as $cc) {
+                    if (($cc['id'] ?? '') === $ref) { $q = ['author' => ($cc['user'] ?? ''), 'text' => $cc['text'] ?? '', 'media_ids' => $cc['media_ids'] ?? [], 'status' => $cc['status'] ?? 'normal']; break; }
+                }
             }
             if ($q && ($q['status'] ?? 'normal') === 'normal') {
-                $qa = author_card($q['user'] ?? ($q['author'] ?? ''));
+                $qa = author_card($q['author'] ?? ($q['user'] ?? ''));
                 $p['quote'] = [
                     'kind' => $refKind, 'deleted' => false,
                     'text' => $q['text'] ?? '',
@@ -139,10 +214,26 @@ function decorate_posts($posts, $meEmail, $postsDoc = null) {
                 $p['quote'] = ['kind' => $refKind, 'deleted' => true];
             }
         }
+
+        // v3.5.5：replyCount=直接回复数（含 hidden）；quoteCount=被引用数
+        $replyCount = $quoteCount = 0;
+        foreach ($allItems as $it) {
+            if (($it['status'] ?? 'normal') !== 'normal') continue;
+            if (($it['reply_to_post_id'] ?? null) === $pid) $replyCount++;
+            if (($it['quoted_post_id'] ?? null) === $pid)  $quoteCount++;
+        }
+        // v3.5.5：repostWrapper = 该帖最近一条纯转发 {byNickname, at}
+        $p['repostWrapper'] = $latestRepost
+            ? ['byNickname' => author_card($latestRepost['user'] ?? '')['nickname'], 'at' => $latestRepost['at'] ?? '']
+            : null;
         $p['authorNick'] = $a['nickname'];
         $p['authorAvatar'] = $a['avatar'];
         $p['liked'] = $liked; $p['reposted'] = $reposted; $p['bookmarked'] = $bookmarked;
-        $p['likeCount'] = $likeCount; $p['commentCount'] = $commentCount; $p['repostCount'] = $repostCount;
+        $p['likeCount'] = $likeCount;
+        $p['replyCount'] = $replyCount;
+        $p['quoteCount'] = $quoteCount;
+        $p['commentCount'] = $replyCount;   // v3.5.5：口径=直接回复数（同 replyCount）
+        $p['repostCount'] = $repostCount;
         // 作者是否封禁/注销 → 前端降级
         $p['authorBanned'] = !empty($a['banned']) || !isset($users['users'][$au]);
     }
@@ -190,6 +281,8 @@ if ($action === 'feed') {
 
     $postsDoc = db_read_json(POSTS_FILE, POSTS_DEFAULT);
     $items = filter_eligible($postsDoc['items'] ?? []);
+    // v3.5.5：回复帖（reply_to_post_id≠null）不进 feed 主列表
+    $items = array_values(array_filter($items, fn($p) => empty($p['reply_to_post_id'])));
 
     if ($tab === 'follow') {
         $follows = db_read_json(FOLLOWS_FILE, []);
@@ -203,7 +296,7 @@ if ($action === 'feed') {
         $empty = empty($myFollows) ? 'no_follow' : null;
         $page = array_slice($out, $cursor, $limit);
         $next = ($cursor + $limit < count($out)) ? ($cursor + $limit) : null;
-        $posts = decorate_posts($page, $meEmail);
+        $posts = decorate_posts($page, $meEmail, $postsDoc);
         json_out(['ok' => true, 'posts' => array_values($posts), 'nextCursor' => $next,
                   'empty' => $empty && empty($page) ? $empty : null]);
     }
@@ -211,11 +304,11 @@ if ($action === 'feed') {
     // recommend：全站有效帖伪随机 shuffle；每次请求重抽一批，前端 feedSeen 去重
     shuffle($items);
     $page = array_slice($items, 0, $limit);
-    $posts = decorate_posts(array_values($page), $meEmail);
+    $posts = decorate_posts(array_values($page), $meEmail, $postsDoc);
     json_out(['ok' => true, 'posts' => array_values($posts), 'nextCursor' => null]);
 }
 
-// ---------- post ----------
+// ---------- post（v3.5.5：统一建帖——普通/回复 reply_to_post_id/引用 quoted_post_id） ----------
 if ($action === 'post') {
     $text = isset($in['text']) ? trim((string)$in['text']) : '';
     $mediaIds = isset($in['media']) && is_array($in['media']) ? array_values($in['media']) : [];
@@ -223,12 +316,41 @@ if ($action === 'post') {
     $replyPolicy = isset($in['reply_policy']) ? (string)$in['reply_policy'] : 'all';
     if (!in_array($replyPolicy, ['all','following','mentioned'], true)) $replyPolicy = 'all';
     $reqId = isset($in['client_req_id']) ? substr(trim((string)$in['client_req_id']), 0, 64) : '';
+    $replyToPostId = isset($in['reply_to_post_id']) ? trim((string)$in['reply_to_post_id']) : '';
+    $quotedPostId = isset($in['quoted_post_id']) ? trim((string)$in['quoted_post_id']) : '';
+    // 互斥校验：reply_to_post_id 与 quoted_post_id 不能同时非空（引用优先报错）
+    if ($replyToPostId !== '' && $quotedPostId !== '') {
+        json_out(['ok' => false, 'err' => 'mutex', 'msg' => '回复与引用不能同时使用']);
+    }
 
     if ($text === '' && empty($mediaIds) && !isset($in['score'])) {
         json_out(['ok' => false, 'err' => 'empty', 'msg' => '内容不能为空']);
     }
     if ($text !== '' && mb_strlen($text) > 500) {
         json_out(['ok' => false, 'err' => 'toolong', 'msg' => '内容须 ≤500 字']);
+    }
+
+    // 目标帖解析：回复/引用校验目标存在且 normal；reply 校验 reply_policy
+    $postsDoc0 = db_read_json(POSTS_FILE, POSTS_DEFAULT);
+    $parentPost = null;   // 回复的直接父帖
+    $quotedPost = null;   // 引用的目标帖
+    $convId = '';
+    if ($replyToPostId !== '') {
+        $parentPost = find_post_by_id($postsDoc0['items'] ?? [], $replyToPostId);
+        if (!$parentPost || ($parentPost['status'] ?? 'normal') !== 'normal') {
+            json_out(['ok' => false, 'err' => 'notfound', 'msg' => '要回复的动态不存在或已删除'], 404);
+        }
+        if (!reply_policy_allows($parentPost, $meEmail)) {
+            json_out(['ok' => false, 'err' => 'forbidden_reply', 'msg' => '作者不允许你回复'], 403);
+        }
+        $convId = conv_id_of($parentPost);   // conversation_id 继承目标帖根帖
+    }
+    if ($quotedPostId !== '') {
+        $quotedPost = find_post_by_id($postsDoc0['items'] ?? [], $quotedPostId);
+        if (!$quotedPost || ($quotedPost['status'] ?? 'normal') !== 'normal') {
+            json_out(['ok' => false, 'err' => 'notfound', 'msg' => '引用的动态不存在或已删除'], 404);
+        }
+        // 引用帖 conversation_id=自身 id（落库时填）
     }
 
     // 媒体校验：存在于 manifest 且为本人上传
@@ -281,9 +403,15 @@ if ($action === 'post') {
         'id' => new_id(), 'author' => $meEmail, 'type' => $type,
         'text' => $text, 'media_ids' => $mediaIds, 'share_card' => $score,
         'mentions' => $mentions, 'reply_policy' => $replyPolicy,
+        'reply_to_post_id' => ($replyToPostId !== '' ? $replyToPostId : null),
+        'conversation_id' => '',
+        'quoted_post_id' => ($quotedPostId !== '' ? $quotedPostId : null),
+        'hidden' => false,
         'repost_of' => null,
-        'createdAt' => now(), 'status' => 'normal', 'schema_v' => 1,
+        'createdAt' => now(), 'status' => 'normal', 'schema_v' => 2,
     ];
+    // 普通/引用帖 conversation_id=自身 id；回复帖=根帖 id
+    $post['conversation_id'] = ($replyToPostId !== '') ? $convId : $post['id'];
 
     $dup = false;
     $ok = db_transact_json(POSTS_FILE, POSTS_DEFAULT, function($d) use ($post, $reqId, &$dup) {
@@ -297,12 +425,15 @@ if ($action === 'post') {
     if ($dup) json_out(['ok' => false, 'err' => 'dup', 'msg' => '请勿重复提交']);
     if ($ok === false) json_out(['ok' => false, 'err' => 'io', 'msg' => '保存失败，请稍后重试'], 500);
 
+    // 通知：reply→父帖作者；quote→原帖作者；mention→被 @ 者
     $snippet = mb_substr($text, 0, 60);
+    if ($parentPost !== null) add_notify($parentPost['author'] ?? '', 'reply', $meEmail, $post['id'], $snippet);
+    if ($quotedPost !== null) add_notify($quotedPost['author'] ?? '', 'quote', $meEmail, $post['id'], $snippet);
     foreach ($mentions as $ee) add_notify($ee, 'mention', $meEmail, $post['id'], $snippet);
 
-    $postsDoc = db_read_json(POSTS_FILE, POSTS_DEFAULT);
-    $fresh = find_post_by_id($postsDoc['items'] ?? [], $post['id']);
-    json_out(['ok' => true, 'post' => $fresh ? array_values(decorate_posts([$fresh], $meEmail))[0] : $post]);
+    $freshDoc = db_read_json(POSTS_FILE, POSTS_DEFAULT);
+    $fresh = find_post_by_id($freshDoc['items'] ?? [], $post['id']);
+    json_out(['ok' => true, 'post' => $fresh ? array_values(decorate_posts([$fresh], $meEmail, $freshDoc))[0] : $post]);
 }
 
 // ---------- del（软删帖/评论 + 清理媒体） ----------
@@ -311,24 +442,39 @@ if ($action === 'del') {
     $kind = isset($in['kind']) ? (string)$in['kind'] : 'post';
 
     if ($kind === 'comment') {
+        // v3.5.5 兼容：查 posts.php c_ 前缀回复帖软删（旧前端调用；comments[] 已空）
         $state = 'notfound';
-        $ok = db_transact_json(SOCIAL_FILE, SOCIAL_DEFAULT, function($s) use ($id, $meEmail, $me, &$state) {
-            $comments = $s['comments'] ?? [];
-            foreach ($comments as $i => &$c) {
-                if (($c['id'] ?? '') === $id) {
-                    if (($c['user'] ?? '') !== $meEmail && ($me['role'] ?? 'user') !== 'admin') { $state = 'forbidden'; return null; }
-                    $c['status'] = 'deleted'; $state = 'done'; $s['comments'] = $comments; return $s;
+        $ok = db_transact_json(POSTS_FILE, POSTS_DEFAULT, function($d) use ($id, $meEmail, $me, &$state) {
+            $items = $d['items'] ?? [];
+            foreach ($items as $i => $p) {
+                if (($p['id'] ?? '') === $id) {
+                    if (($p['author'] ?? '') !== $meEmail && ($me['role'] ?? 'user') !== 'admin') { $state = 'forbidden'; return null; }
+                    $items[$i]['status'] = 'deleted';
+                    $d['items'] = $items;
+                    $state = 'done'; return $d;
                 }
             }
             return null;
         });
+        if ($state === 'notfound') {
+            // 迁移前兜底：旧 social.comments[]
+            $ok = db_transact_json(SOCIAL_FILE, SOCIAL_DEFAULT, function($s) use ($id, $meEmail, $me, &$state) {
+                foreach ($s['comments'] ?? [] as $i => &$c) {
+                    if (($c['id'] ?? '') === $id) {
+                        if (($c['user'] ?? '') !== $meEmail && ($me['role'] ?? 'user') !== 'admin') { $state = 'forbidden'; return null; }
+                        $c['status'] = 'deleted'; $state = 'done'; return $s;
+                    }
+                }
+                return null;
+            });
+        }
         if ($state === 'notfound') json_out(['ok' => false, 'err' => 'notfound', 'msg' => '评论不存在'], 404);
         if ($state === 'forbidden') json_out(['ok' => false, 'err' => 'forbidden', 'msg' => '只能删除自己的评论'], 403);
         if ($ok === false) json_out(['ok' => false, 'err' => 'io', 'msg' => '删除失败'], 500);
         json_out(['ok' => true]);
     }
 
-    // kind=post
+    // kind=post（v3.5.5：天然支持 c_ 前缀回复帖，删除规则不变=本人/admin）
     $state = 'notfound';
     $ok = db_transact_json(POSTS_FILE, POSTS_DEFAULT, function($d) use ($id, $meEmail, $me, &$state) {
         $items = $d['items'] ?? [];
@@ -384,7 +530,7 @@ if ($action === 'like' || $action === 'unlike') {
     json_out(['ok' => true, 'likeCount' => $likeCount]);
 }
 
-// ---------- comment（服务端强制 reply_policy；v3.5.4：评论挂媒体 ≤4 + 嵌套回复 reply_to） ----------
+// ---------- comment（v3.5.5 兼容重定向：按 reply 语义创建回复帖进 posts.php） ----------
 if ($action === 'comment') {
     $id = trim((string)($in['id'] ?? ''));
     $text = trim((string)($in['text'] ?? ''));
@@ -399,20 +545,9 @@ if ($action === 'comment') {
     if (!$p || ($p['status'] ?? 'normal') !== 'normal') json_out(['ok' => false, 'err' => 'notfound', 'msg' => '动态不存在'], 404);
 
     // reply_policy 服务端校验（绕过前端直调 API 同样拦截）
-    $au = $p['author'] ?? '';
-    $policy = $p['reply_policy'] ?? 'all';
-    $allowed = ($meEmail === $au);
-    if (!$allowed && $policy === 'all') $allowed = true;
-    if (!$allowed && $policy === 'following') {
-        $follows = db_read_json(FOLLOWS_FILE, []);
-        if (in_array($meEmail, $follows[$au] ?? [], true)) $allowed = true;
-    }
-    if (!$allowed && $policy === 'mentioned') {
-        if (in_array($meEmail, $p['mentions'] ?? [], true)) $allowed = true;
-    }
-    if (!$allowed) json_out(['ok' => false, 'err' => 'forbidden_reply', 'msg' => '作者不允许你回复'], 403);
+    if (!reply_policy_allows($p, $meEmail)) json_out(['ok' => false, 'err' => 'forbidden_reply', 'msg' => '作者不允许你回复'], 403);
 
-    // 评论媒体校验：存在于 manifest 且为本人上传（复用主帖管线）
+    // 评论媒体校验：存在于 manifest 且为本人上传
     $manifest = manifest_get();
     foreach ($mediaIds as $mid) {
         $mrec = $manifest[$mid] ?? null;
@@ -421,17 +556,16 @@ if ($action === 'comment') {
         }
     }
 
-    // 嵌套回复：reply_to 指向本帖某条有效评论；被回复者本身是回复时归并到根评论（最多 2 层）
-    $replyUser = null;
+    // 父帖解析：reply_to 传评论 id(c_xxx 或旧 id) → 指向该回复帖；否则挂根帖
+    // （回复的回复归并：前端约束最多 2 层；此处校验必须属于同一 conversation）
+    $parentId = $id;
     if ($replyTo !== '') {
-        $soc0 = db_read_json(SOCIAL_FILE, SOCIAL_DEFAULT);
-        $rc = null;
-        foreach (($soc0['comments'] ?? []) as $c0) {
-            if (($c0['id'] ?? '') === $replyTo && ($c0['post_id'] ?? '') === $id && ($c0['status'] ?? 'normal') === 'normal') { $rc = $c0; break; }
+        $cand = find_post_by_id($postsDoc['items'] ?? [], $replyTo);
+        if (!$cand && strncmp($replyTo, 'c_', 2) !== 0) $cand = find_post_by_id($postsDoc['items'] ?? [], 'c_' . $replyTo);
+        if ($cand && ($cand['status'] ?? 'normal') === 'normal' &&
+            conv_id_of($cand) === conv_id_of($p) && !empty($cand['reply_to_post_id'])) {
+            $parentId = $cand['id'];
         }
-        if (!$rc) json_out(['ok' => false, 'err' => 'notfound', 'msg' => '要回复的评论不存在'], 404);
-        $replyUser = $rc['user'];
-        $replyTo = ($rc['reply_to'] ?? null) ?: $rc['id'];   // 回复的回复归并到根
     }
 
     // 评论内 @提及
@@ -444,107 +578,152 @@ if ($action === 'comment') {
             }
         }
     }
-    $cm = ['id'=>new_id(),'post_id'=>$id,'user'=>$meEmail,'text'=>$text,
-           'mentions'=>array_keys($mentions),
-           'reply_to'=>($replyTo !== '' ? $replyTo : null), 'reply_user'=>$replyUser,
-           'media_ids'=>$mediaIds,'at'=>now(),'status'=>'normal'];
-    $ok = db_transact_json(SOCIAL_FILE, SOCIAL_DEFAULT, function($s) use ($cm) {
-        $s['comments'][] = $cm; return $s;
+    $mentions = array_keys($mentions);
+
+    $ctype = 'text';
+    if (!empty($mediaIds)) {
+        $k = $manifest[$mediaIds[0]]['kind'] ?? 'image';
+        $ctype = in_array($k, ['image','video','audio'], true) ? $k : 'image';
+    }
+    $rp = [
+        'id' => new_id(), 'author' => $meEmail, 'type' => $ctype,
+        'text' => $text, 'media_ids' => $mediaIds, 'share_card' => null,
+        'mentions' => $mentions, 'reply_policy' => 'all',
+        'reply_to_post_id' => $parentId,
+        'conversation_id' => conv_id_of($p),
+        'quoted_post_id' => null, 'hidden' => false, 'repost_of' => null,
+        'createdAt' => now(), 'status' => 'normal', 'schema_v' => 2,
+    ];
+    $ok = db_transact_json(POSTS_FILE, POSTS_DEFAULT, function($d) use ($rp) {
+        if (!isset($d['items']) || !is_array($d['items'])) $d['items'] = [];
+        $d['items'][] = $rp; return $d;
     });
     if ($ok === false) json_out(['ok' => false, 'err' => 'io', 'msg' => '评论失败'], 500);
 
-    add_notify($au, 'comment', $meEmail, $id, $text);
-    foreach (array_keys($mentions) as $ee) add_notify($ee, 'mention', $meEmail, $id, mb_substr($text,0,60));
-    if ($replyUser !== null && $replyUser !== $meEmail) add_notify($replyUser, 'reply', $meEmail, $id, mb_substr($text,0,60));
+    // 通知：type=reply 给直接父帖作者（根评论=根帖作者；嵌套=被回复者）
+    $parentPost = ($parentId === $id) ? $p : find_post_by_id($postsDoc['items'] ?? [], $parentId);
+    add_notify($parentPost['author'] ?? '', 'reply', $meEmail, $rp['id'], mb_substr($text, 0, 60));
+    foreach ($mentions as $ee) add_notify($ee, 'mention', $meEmail, $id, mb_substr($text, 0, 60));
 
+    // 返回 v3.5.4 兼容评论视图 + 直接回复数
     $social = db_read_json(SOCIAL_FILE, SOCIAL_DEFAULT);
-    $cc = 0; foreach (($social['comments']??[]) as $r) if (($r['post_id']??'')===$id && ($r['status']??'normal')==='normal') $cc++;
-    json_out(['ok' => true, 'comment' => $cm, 'commentCount' => $cc]);
+    $users = load_users();
+    $freshDoc = db_read_json(POSTS_FILE, POSTS_DEFAULT);
+    $itemsById = []; foreach (($freshDoc['items'] ?? []) as $it) $itemsById[$it['id']] = $it;
+    $comment = build_reply_view($rp, $id, $itemsById, $social, $users, $manifest, $meEmail);
+    $cc = 0;
+    foreach (($freshDoc['items'] ?? []) as $it) {
+        if (($it['status'] ?? 'normal') === 'normal' && ($it['reply_to_post_id'] ?? null) === $id) $cc++;
+    }
+    json_out(['ok' => true, 'comment' => $comment, 'commentCount' => $cc]);
 }
 
-// ---------- 评论点赞/收藏（v3.5.4） ----------
+// ---------- 评论点赞/收藏（v3.5.5 兼容：互动统一落 likes[]/bookmarks[]，计数合并旧 comment_likes/bookmarks） ----------
 if ($action === 'comment_like' || $action === 'comment_unlike' || $action === 'comment_bookmark' || $action === 'comment_unbookmark') {
     $cid = trim((string)($in['id'] ?? ''));
     $isLike = ($action === 'comment_like' || $action === 'comment_unlike');
     $on = ($action === 'comment_like' || $action === 'comment_bookmark');
-    $arrKey = $isLike ? 'comment_likes' : 'comment_bookmarks';
-    $soc0 = db_read_json(SOCIAL_FILE, SOCIAL_DEFAULT);
-    $found = false; $author = null;
-    foreach (($soc0['comments'] ?? []) as $c0) {
-        if (($c0['id'] ?? '') === $cid && ($c0['status'] ?? 'normal') === 'normal') { $found = true; $author = $c0['user'] ?? null; break; }
-    }
-    if (!$found) json_out(['ok' => false, 'err' => 'notfound', 'msg' => '评论不存在'], 404);
 
+    // 目标：优先 posts.php c_ 回复帖；迁移前兜底旧 comments[]
+    $postsDoc = db_read_json(POSTS_FILE, POSTS_DEFAULT);
+    $target = find_post_by_id($postsDoc['items'] ?? [], $cid);
+    $author = $target['author'] ?? null;
+    if (!$target) {
+        $soc0 = db_read_json(SOCIAL_FILE, SOCIAL_DEFAULT);
+        foreach (($soc0['comments'] ?? []) as $c0) {
+            if (($c0['id'] ?? '') === $cid && ($c0['status'] ?? 'normal') === 'normal') { $author = $c0['user'] ?? null; $target = $c0; break; }
+        }
+    }
+    if (!$target) json_out(['ok' => false, 'err' => 'notfound', 'msg' => '评论不存在'], 404);
+
+    $arrKey = $isLike ? 'likes' : 'bookmarks';
     db_transact_json(SOCIAL_FILE, SOCIAL_DEFAULT, function($s) use ($arrKey, $cid, $meEmail, $on) {
         if ($on) {
-            foreach (($s[$arrKey] ?? []) as $r) if (($r['comment_id']??'')===$cid && ($r['user']??'')===$meEmail) return null;
-            $s[$arrKey][] = ['comment_id'=>$cid,'user'=>$meEmail,'at'=>now()]; return $s;
+            foreach (($s[$arrKey] ?? []) as $r) if (($r['post_id']??'')===$cid && ($r['user']??'')===$meEmail) return null;
+            $s[$arrKey][] = ['post_id'=>$cid,'user'=>$meEmail,'at'=>now()]; return $s;
         }
-        $s[$arrKey] = array_values(array_filter($s[$arrKey] ?? [], fn($r) => !(($r['comment_id']??'')===$cid && ($r['user']??'')===$meEmail)));
+        $s[$arrKey] = array_values(array_filter($s[$arrKey] ?? [], fn($r) => !(($r['post_id']??'')===$cid && ($r['user']??'')===$meEmail)));
         return $s;
     });
-    if ($on && $isLike && $author !== null) add_notify($author, 'like_comment', $meEmail, $cid, '赞了你的评论');
+    if ($on && $isLike && $author !== null) add_notify($author, 'like', $meEmail, $cid, '赞了你的回复');
 
+    // 计数 = 统一 likes[]/bookmarks[] + 旧 comment_likes/comment_bookmarks 合并
     $soc = db_read_json(SOCIAL_FILE, SOCIAL_DEFAULT);
-    $cnt = 0; foreach (($soc[$arrKey] ?? []) as $r) if (($r['comment_id'] ?? '') === $cid) $cnt++;
+    $cnt = 0;
+    foreach (($soc['likes'] ?? []) as $r)        if (($r['post_id'] ?? '') === $cid) $cnt++;
+    if ($isLike) foreach (($soc['comment_likes'] ?? []) as $r) if (($r['comment_id'] ?? '') === $cid) $cnt++;
+    else         foreach (($soc['comment_bookmarks'] ?? []) as $r) if (($r['comment_id'] ?? '') === $cid) $cnt++;
     if ($isLike) json_out(['ok' => true, 'likeCount' => $cnt]);
     json_out(['ok' => true, 'bookmarkCount' => $cnt]);
 }
 
-// ---------- 评论转发（v3.5.4：生成引用该评论的新帖 quote_comment） ----------
+// ---------- 评论转发（v3.5.5 兼容：查 posts.php c_ 回复帖 → 生成引用帖 quoted_post_id=c_xxx） ----------
 if ($action === 'comment_repost') {
     $cid = trim((string)($in['id'] ?? ''));
     $text = isset($in['text']) ? trim((string)$in['text']) : '';
-    $soc0 = db_read_json(SOCIAL_FILE, SOCIAL_DEFAULT);
-    $qc = null;
-    foreach (($soc0['comments'] ?? []) as $c0) {
-        if (($c0['id'] ?? '') === $cid && ($c0['status'] ?? 'normal') === 'normal') { $qc = $c0; break; }
-    }
-    if (!$qc) json_out(['ok' => false, 'err' => 'notfound', 'msg' => '评论不存在或已删除'], 404);
+    $postsDoc = db_read_json(POSTS_FILE, POSTS_DEFAULT);
+    $qc = find_post_by_id($postsDoc['items'] ?? [], $cid);
+    if (!$qc || ($qc['status'] ?? 'normal') !== 'normal') json_out(['ok' => false, 'err' => 'notfound', 'msg' => '评论不存在或已删除'], 404);
 
+    $mentions = [];
+    if ($text !== '' && preg_match_all('/@([^\s@，。,.!！?？:：;；、]+)/u', $text, $m)) {
+        $users = load_users();
+        foreach (array_unique($m[1]) as $token) {
+            foreach ($users['users'] as $ee => $uu) {
+                if ($ee === $meEmail || !empty($uu['banned'])) continue;
+                if (($uu['nickname'] ?? '') === $token || $ee === $token) $mentions[$ee] = true;
+            }
+        }
+    }
     $newPost = [
-        'id'=>new_id(),'author'=>$meEmail,'type'=>'repost','text'=>$text,'media_ids'=>[],
-        'share_card'=>null,'mentions'=>[],'reply_policy'=>'all','repost_of'=>null,'quote_comment'=>$cid,
-        'createdAt'=>now(),'status'=>'normal','schema_v'=>1,
+        'id' => new_id(), 'author' => $meEmail, 'type' => 'text', 'text' => $text, 'media_ids' => [],
+        'share_card' => null, 'mentions' => array_keys($mentions), 'reply_policy' => 'all',
+        'reply_to_post_id' => null, 'conversation_id' => '',
+        'quoted_post_id' => $cid, 'hidden' => false, 'repost_of' => null,
+        'createdAt' => now(), 'status' => 'normal', 'schema_v' => 2,
     ];
+    $newPost['conversation_id'] = $newPost['id'];   // 引用帖独立 conversation
     $ok = db_transact_json(POSTS_FILE, POSTS_DEFAULT, function($d) use ($newPost) {
+        if (!isset($d['items']) || !is_array($d['items'])) $d['items'] = [];
         $d['items'][] = $newPost; return $d;
     });
     if ($ok === false) json_out(['ok' => false, 'err' => 'io', 'msg' => '转发失败'], 500);
 
-    add_notify(($qc['user'] ?? ''), 'comment_repost', $meEmail, ($qc['post_id'] ?? null), '转发了你的评论');
-    json_out(['ok' => true, 'post' => $newPost]);
+    add_notify($qc['author'] ?? '', 'quote', $meEmail, $newPost['id'], mb_substr($text, 0, 60));
+    $freshDoc = db_read_json(POSTS_FILE, POSTS_DEFAULT);
+    $fresh = find_post_by_id($freshDoc['items'] ?? [], $newPost['id']);
+    json_out(['ok' => true, 'post' => $fresh ? array_values(decorate_posts([$fresh], $meEmail, $freshDoc))[0] : $newPost]);
 }
 
-// ---------- repost（生成引用原帖的新帖） ----------
+// ---------- repost（v3.5.5：纯转发，只记 reposts[] 关系，不建帖；UNIQUE 幂等） ----------
 if ($action === 'repost') {
     $id = trim((string)($in['id'] ?? ''));
-    $text = isset($in['text']) ? trim((string)$in['text']) : '';
     $postsDoc = db_read_json(POSTS_FILE, POSTS_DEFAULT);
     $orig = find_post_by_id($postsDoc['items'] ?? [], $id);
     if (!$orig || ($orig['status'] ?? 'normal') !== 'normal') json_out(['ok' => false, 'err' => 'notfound', 'msg' => '原动态不存在或已删除'], 404);
 
-    $newPost = [
-        'id'=>new_id(),'author'=>$meEmail,'type'=>'repost','text'=>$text,'media_ids'=>[],
-        'share_card'=>null,'mentions'=>[],'reply_policy'=>'all','repost_of'=>$id,
-        'createdAt'=>now(),'status'=>'normal','schema_v'=>1,
-    ];
-    $ok = db_transact_json(POSTS_FILE, POSTS_DEFAULT, function($d) use ($newPost) {
-        $d['items'][] = $newPost; return $d;
-    });
-    // reposts 关系落 social.php
     db_transact_json(SOCIAL_FILE, SOCIAL_DEFAULT, function($s) use ($id, $meEmail) {
-        foreach (($s['reposts'] ?? []) as $r) if (($r['post_id']??'')===$id && ($r['user']??'')===$meEmail) return null;
+        foreach (($s['reposts'] ?? []) as $r) if (($r['post_id']??'')===$id && ($r['user']??'')===$meEmail) return null;  // 幂等
         $s['reposts'][] = ['post_id'=>$id,'user'=>$meEmail,'at'=>now()]; return $s;
     });
-    if ($ok === false) json_out(['ok' => false, 'err' => 'io', 'msg' => '转发失败'], 500);
 
-    add_notify($orig['author'], 'repost', $meEmail, $id, '转发了你的动态');
-    foreach (($orig['mentions'] ?? []) as $ee) add_notify($ee, 'mention', $meEmail, $newPost['id'], $text);
+    add_notify($orig['author'] ?? '', 'repost', $meEmail, $id, '转发了你的动态');
 
     $social = db_read_json(SOCIAL_FILE, SOCIAL_DEFAULT);
     $rc = 0; foreach (($social['reposts']??[]) as $r) if (($r['post_id']??'')===$id) $rc++;
-    json_out(['ok' => true, 'post' => $newPost, 'repostCount' => $rc]);
+    json_out(['ok' => true, 'reposted' => true, 'repostCount' => $rc]);
+}
+
+// ---------- unrepost（v3.5.5：取消纯转发） ----------
+if ($action === 'unrepost') {
+    $id = trim((string)($in['id'] ?? ''));
+    db_transact_json(SOCIAL_FILE, SOCIAL_DEFAULT, function($s) use ($id, $meEmail) {
+        $s['reposts'] = array_values(array_filter($s['reposts'] ?? [], fn($r) => !(($r['post_id']??'')===$id && ($r['user']??'')===$meEmail)));
+        return $s;
+    });
+    $social = db_read_json(SOCIAL_FILE, SOCIAL_DEFAULT);
+    $rc = 0; foreach (($social['reposts']??[]) as $r) if (($r['post_id']??'')===$id) $rc++;
+    json_out(['ok' => true, 'reposted' => false, 'repostCount' => $rc]);
 }
 
 // ---------- bookmark / unbookmark ----------
@@ -607,72 +786,132 @@ if ($action === 'followers') {
     json_out(['ok' => true, 'users' => $out]);
 }
 
-// ---------- posts_of ----------
+// ---------- posts_of（v3.5.5：作者全部有效帖含回复帖 + 本人 reposts[] 转发的帖，带 repostWrapper） ----------
 if ($action === 'posts_of') {
     $target = isset($in['email']) && trim((string)$in['email']) !== '' ? strtolower(trim((string)$in['email'])) : $meEmail;
     $postsDoc = db_read_json(POSTS_FILE, POSTS_DEFAULT);
-    $out = [];
+    $social = db_read_json(SOCIAL_FILE, SOCIAL_DEFAULT);
+    $users = load_users();
+    $rows = [];   // [sortAt, post, wrapperOverride|null]
     foreach (filter_eligible($postsDoc['items'] ?? []) as $p) {
-        if (($p['author'] ?? '') === $target) $out[] = $p;
+        if (($p['author'] ?? '') === $target) $rows[] = [$p['createdAt'] ?? '', $p, null];
     }
-    usort($out, function($a,$b){ return strcmp($b['createdAt']??'', $a['createdAt']??''); });
-    json_out(['ok' => true, 'posts' => array_values(decorate_posts($out, $meEmail))]);
+    foreach (($social['reposts'] ?? []) as $r) {
+        if (($r['user'] ?? '') !== $target) continue;
+        $orig = find_post_by_id($postsDoc['items'] ?? [], $r['post_id'] ?? '');
+        if (!$orig || ($orig['status'] ?? 'normal') !== 'normal') continue;   // 原帖软删→转发不展示
+        $oa = $orig['author'] ?? '';
+        if (!isset($users['users'][$oa]) || !empty($users['users'][$oa]['banned'])) continue;
+        $rows[] = [$r['at'] ?? '', $orig, ['byNickname' => author_card($target)['nickname'], 'at' => $r['at'] ?? '']];
+    }
+    usort($rows, fn($a, $b) => strcmp($b[0], $a[0]));   // 时间倒序（转发按转发时间）
+    $out = [];
+    foreach ($rows as $row) $out[] = $row[1];
+    $decorated = decorate_posts($out, $meEmail, $postsDoc);
+    foreach ($rows as $i => $row) {
+        if ($row[2] !== null) $decorated[$i]['repostWrapper'] = $row[2];   // 包装层=主页主人转发
+    }
+    json_out(['ok' => true, 'posts' => array_values($decorated)]);
 }
 
-// ---------- comments_of（评论列表 v3.5.4：全量 + 根评论/回复分组 + 媒体 + 交互态） ----------
+// ---------- comments_of（v3.5.5：按 conversation_id=id 返回回复树；hidden 默认过滤，include_hidden=1 给 hiddenComments） ----------
 if ($action === 'comments_of') {
     $id = trim((string)($in['id'] ?? ''));
+    $includeHidden = isset($in['include_hidden']) && (string)$in['include_hidden'] === '1';
     $postsDoc = db_read_json(POSTS_FILE, POSTS_DEFAULT);
-    $p = find_post_by_id($postsDoc['items'] ?? [], $id);
-    if (!$p || ($p['status'] ?? 'normal') !== 'normal') json_out(['ok' => false, 'err' => 'notfound', 'msg' => '动态不存在'], 404);
+    $items = $postsDoc['items'] ?? [];
+    $root = find_post_by_id($items, $id);
+    if (!$root || ($root['status'] ?? 'normal') !== 'normal') json_out(['ok' => false, 'err' => 'notfound', 'msg' => '动态不存在'], 404);
+    $convId = conv_id_of($root);
 
     $social = db_read_json(SOCIAL_FILE, SOCIAL_DEFAULT);
     $users = load_users();
     $manifest = manifest_get();
-    // 该帖有效评论（软删过滤），按 at 时间正序（旧→新）
-    $all = [];
-    foreach (($social['comments'] ?? []) as $c) {
-        if (($c['post_id'] ?? '') !== $id) continue;
-        if (($c['status'] ?? 'normal') !== 'normal') continue;
-        $all[] = $c;
-    }
-    usort($all, function($a,$b){ return strcmp($a['at'] ?? '', $b['at'] ?? ''); });
-    $commentCount = count($all);
+    $itemsById = []; foreach ($items as $it) $itemsById[$it['id']] = $it;
 
-    $view = function($c) use ($users, $manifest, $social, $meEmail) {
-        $au = $users['users'][$c['user'] ?? ''] ?? null;
-        $likeCount = $bookmarkCount = 0; $liked = $bookmarked = false;
-        foreach (($social['comment_likes'] ?? []) as $r) { if (($r['comment_id'] ?? '') === ($c['id'] ?? '')) { $likeCount++; if (($r['user']??'') === $meEmail) $liked = true; } }
-        foreach (($social['comment_bookmarks'] ?? []) as $r) { if (($r['comment_id'] ?? '') === ($c['id'] ?? '')) { $bookmarkCount++; if (($r['user']??'') === $meEmail) $bookmarked = true; } }
-        $replyNick = null;
-        if (!empty($c['reply_user'])) { $ru = $users['users'][$c['reply_user']] ?? null; $replyNick = $ru['nickname'] ?? '已注销'; }
-        return [
-            'id' => $c['id'], 'post_id' => $c['post_id'] ?? $id, 'user' => $c['user'], 'text' => $c['text'],
-            'mentions' => $c['mentions'] ?? [], 'reply_to' => $c['reply_to'] ?? null,
-            'reply_user' => $c['reply_user'] ?? null, 'replyNick' => $replyNick,
-            'media' => resolve_media($c['media_ids'] ?? [], $manifest),
-            'at' => $c['at'], 'status' => 'normal',
-            'authorNick' => $au['nickname'] ?? '已注销',
-            'authorAvatar' => $au['avatar'] ?? 'zodiac:rat',
-            'likeCount' => $likeCount, 'liked' => $liked,
-            'bookmarkCount' => $bookmarkCount, 'bookmarked' => $bookmarked,
-            'mine' => (($c['user'] ?? '') === $meEmail),
-        ];
+    // 本 conversation 全部 normal 回复帖
+    $rootDirect = []; $byParent = [];
+    foreach ($items as $it) {
+        if (($it['status'] ?? 'normal') !== 'normal') continue;
+        if (empty($it['reply_to_post_id'])) continue;            // 非回复帖
+        if (conv_id_of($it) !== $convId) continue;
+        if (($it['reply_to_post_id'] ?? '') === $id) $rootDirect[] = $it;
+        else $byParent[$it['reply_to_post_id']][] = $it;
+    }
+    $visibleRoots = []; $hiddenRoots = [];
+    foreach ($rootDirect as $rp) { if (!empty($rp['hidden'])) $hiddenRoots[] = $rp; else $visibleRoots[] = $rp; }
+    usort($visibleRoots, fn($a, $b) => strcmp($a['createdAt'] ?? '', $b['createdAt'] ?? ''));
+    usort($hiddenRoots, fn($a, $b) => strcmp($a['createdAt'] ?? '', $b['createdAt'] ?? ''));
+
+    $buildGroups = function($rootsArr) use ($byParent, $itemsById, $social, $users, $manifest, $meEmail, $id) {
+        $out = [];
+        foreach ($rootsArr as $rc) {
+            $kids = $byParent[$rc['id']] ?? [];
+            usort($kids, fn($a, $b) => strcmp($a['createdAt'] ?? '', $b['createdAt'] ?? ''));
+            $replies = [];
+            foreach ($kids as $kp) $replies[] = build_reply_view($kp, $id, $itemsById, $social, $users, $manifest, $meEmail);
+            $out[] = ['root' => build_reply_view($rc, $id, $itemsById, $social, $users, $manifest, $meEmail), 'replies' => $replies];
+        }
+        return $out;
     };
+    $rootComments = $buildGroups($visibleRoots);
+    $hiddenComments = $includeHidden ? $buildGroups($hiddenRoots) : [];
+    $commentCount = count($rootDirect);   // 直接回复数（含 hidden，与 replyCount 口径一致）
+    json_out(['ok' => true, 'rootComments' => array_values($rootComments), 'commentCount' => $commentCount,
+              'hiddenComments' => array_values($hiddenComments), 'nextCursor' => null]);
+}
 
-    // 分组：根评论（reply_to 空）+ 回复（归并到根，最多 2 层已在写入端约束）
-    $rootComments = []; $byRoot = [];
-    foreach ($all as $c) {
-        if (empty($c['reply_to'])) $rootComments[] = $c;
-        else $byRoot[$c['reply_to']][] = $c;
+// ---------- reply_settings（v3.5.5：作者改自己帖 reply_policy，非作者 403） ----------
+if ($action === 'reply_settings') {
+    $id = trim((string)($in['id'] ?? ''));
+    $policy = isset($in['reply_policy']) ? (string)$in['reply_policy'] : 'all';
+    if (!in_array($policy, ['all','following','mentioned'], true)) {
+        json_out(['ok' => false, 'err' => 'policy', 'msg' => '回复范围不合法']);
     }
-    $roots = [];
-    foreach ($rootComments as $rc) {
-        $replies = [];
-        foreach (($byRoot[$rc['id']] ?? []) as $rp) $replies[] = $view($rp);
-        $roots[] = ['root' => $view($rc), 'replies' => $replies];
-    }
-    json_out(['ok' => true, 'rootComments' => array_values($roots), 'commentCount' => $commentCount, 'nextCursor' => null]);
+    $state = 'notfound';
+    db_transact_json(POSTS_FILE, POSTS_DEFAULT, function($d) use ($id, $policy, $meEmail, &$state) {
+        $items = $d['items'] ?? [];
+        foreach ($items as $i => $p) {
+            if (($p['id'] ?? '') === $id) {
+                if (($p['author'] ?? '') !== $meEmail) { $state = 'forbidden'; return null; }
+                $items[$i]['reply_policy'] = $policy;
+                $d['items'] = $items;
+                $state = 'done'; return $d;
+            }
+        }
+        return null;
+    });
+    if ($state === 'notfound') json_out(['ok' => false, 'err' => 'notfound', 'msg' => '动态不存在'], 404);
+    if ($state === 'forbidden') json_out(['ok' => false, 'err' => 'forbidden', 'msg' => '只能修改自己的动态'], 403);
+    json_out(['ok' => true, 'reply_policy' => $policy]);
+}
+
+// ---------- hide_reply / unhide_reply（v3.5.5：根帖作者隐藏/取消隐藏某回复，非作者 403） ----------
+if ($action === 'hide_reply' || $action === 'unhide_reply') {
+    $id = trim((string)($in['id'] ?? ''));        // 根帖 id
+    $replyId = trim((string)($in['reply_id'] ?? ''));
+    $setHidden = ($action === 'hide_reply');
+    $state = 'notfound';
+    db_transact_json(POSTS_FILE, POSTS_DEFAULT, function($d) use ($id, $replyId, $meEmail, $setHidden, &$state) {
+        $root = find_post_by_id($d['items'] ?? [], $id);
+        if (!$root) return null;
+        if (($root['author'] ?? '') !== $meEmail) { $state = 'forbidden'; return null; }
+        $conv = conv_id_of($root);
+        $items = $d['items'] ?? [];
+        foreach ($items as $i => $rp) {
+            if (($rp['id'] ?? '') === $replyId) {
+                if (empty($rp['reply_to_post_id']) || conv_id_of($rp) !== $conv) { $state = 'badreply'; return null; }
+                $items[$i]['hidden'] = $setHidden;
+                $d['items'] = $items;
+                $state = 'done'; return $d;
+            }
+        }
+        return null;
+    });
+    if ($state === 'notfound')  json_out(['ok' => false, 'err' => 'notfound', 'msg' => '动态不存在'], 404);
+    if ($state === 'forbidden') json_out(['ok' => false, 'err' => 'forbidden', 'msg' => '只能由原帖作者操作'], 403);
+    if ($state === 'badreply')  json_out(['ok' => false, 'err' => 'notfound', 'msg' => '回复不存在'], 404);
+    json_out(['ok' => true, 'hidden' => $setHidden]);
 }
 
 // ---------- search_users（@提及搜索） ----------

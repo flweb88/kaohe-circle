@@ -544,11 +544,62 @@ footer .fb-link:hover{text-decoration:underline}
 .score-pick .sp-name{font-weight:700;font-size:14.5px}
 .score-pick .sp-row{font-size:12px;color:var(--muted);margin-top:3px}
 .score-pick .sp-rw{font-size:13px;font-weight:700;color:var(--primary);margin-top:3px}
+/* ===== v3.5.5 X 帖文结构对齐新增样式（品牌蓝，无暖色） ===== */
+/* RepostWrapper：卡片顶部「xx 转发了」包装层 */
+.repost-wrapper{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);padding:2px 2px 6px 4px}
+.repost-wrapper svg{flex:none}
+/* 转发/引用选择菜单 */
+.repost-menu{display:flex;flex-direction:column;gap:8px;margin:6px 0 14px}
+.rm-item{display:flex;align-items:center;gap:12px;padding:12px;border:1.5px solid var(--border);border-radius:12px;cursor:pointer;background:#FBFCFF;transition:all .15s}
+.rm-item:hover{border-color:var(--primary);background:var(--primary-soft)}
+.rm-item .rm-ic{width:38px;height:38px;border-radius:10px;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.rm-item .rm-tx{flex:1;min-width:0}
+.rm-item .rm-t{font-weight:700;font-size:14.5px;color:var(--text)}
+.rm-item .rm-d{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4}
+/* 回复范围小按钮（详情页作者） */
+.rp-set-btn{cursor:pointer;font-size:11px;margin-left:2px;opacity:.6}
+.rp-set-btn:hover{opacity:1}
+.rp-set-list{display:flex;flex-direction:column;gap:8px;margin:6px 0 14px}
+.rp-set-item{display:flex;flex-direction:column;gap:3px;padding:11px 12px;border:1.5px solid var(--border);border-radius:11px;cursor:pointer;background:#FBFCFF}
+.rp-set-item:hover{border-color:var(--primary)}
+.rp-set-item.active{border-color:var(--primary);background:var(--primary-soft)}
+.rp-set-item b{font-size:14px;color:var(--text)}
+.rp-set-item span{font-size:12px;color:var(--muted)}
+/* Thread 串文：作者本人回复 🧵 标注 + 左侧蓝条 */
+.cmt-item.thread{border-left:2px solid var(--primary);padding-left:8px;margin-left:-2px}
+.thread-mark{margin-right:4px;color:var(--primary);font-size:12px}
+/* 已隐藏回复样式 */
+.cmt-item.is-hidden{opacity:.62}
+.cmt-hidden-tag{display:inline-block;font-size:10px;font-weight:600;color:var(--muted);background:#F1F2F6;border-radius:5px;padding:0 5px;margin-left:4px;vertical-align:middle}
+.hide-ca{color:var(--muted)}
+.hide-ca:hover{color:var(--danger)}
+/* 已隐藏回复入口 + 折叠区 */
+.hidden-cmt-entry{margin:6px 0}
+.hide-entry{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border:1px dashed var(--border);border-radius:10px;font-size:13px;color:var(--muted);cursor:pointer;background:#FBFCFF}
+.hide-entry:hover{border-color:var(--primary);color:var(--primary)}
+.hide-entry .he-arrow{font-size:11px}
+.hidden-cmt-block{margin-top:6px;border-top:1px dashed var(--border);padding-top:4px}
+/* 引用面板：被引用帖只读预览 */
+.quote-source{margin:8px 0 4px;border:1px solid var(--border);border-radius:10px;padding:9px 11px;background:#FBFCFF}
+.quote-source .qs-head{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--text)}
+.quote-source .qs-head img{width:20px;height:20px;border-radius:50%;object-fit:cover;background:#F1F2F6}
+.quote-source .qs-time{font-weight:400;color:var(--muted);font-size:11.5px}
+.quote-source .qs-text{font-size:13.5px;color:var(--text);word-break:break-word;margin-top:4px;line-height:1.5}
 /* 窄屏适配 */
 @media(max-width:480px){
   .post-actions{gap:10px;font-size:12px}
   .post-media.cols-3{grid-template-columns:1fr 1fr 1fr}
   .cm-media-grid{grid-template-columns:repeat(3,1fr)}
+  .rm-item{padding:10px}
+  .cmt-replies{padding-left:18px}
+  .rp-set-item{padding:9px 10px}
+}
+@media(min-width:768px){
+  .cmt-list{max-height:none}
+  .rm-item .rm-ic{width:42px;height:42px;font-size:20px}
+}
+@media(min-width:1280px){
+  .hidden-cmt-entry,.cmt-list{max-width:680px;margin-left:auto;margin-right:auto}
 }
 </style>
 </head>
@@ -557,7 +608,7 @@ footer .fb-link:hover{text-decoration:underline}
 <div id="auth-root" style="display:none"></div>
 <div id="app">
   <main id="main"></main>
-  <footer>考核小管家 v3.5.4 · 考核圈社交版<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
+  <footer>考核小管家 v3.5.5 · 考核圈社交版<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
 </div>
 <nav class="tabbar" id="tabbar">
   <button class="tb" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>首页</button>
@@ -918,7 +969,7 @@ function renderAuth(){
   }
   document.getElementById('auth-root').innerHTML =
     '<div class="rk-wrap">' + brandHtml + body +
-      '<div class="rk-ver">考核圈 · 社交版第一页 v3.5.4</div>' +
+      '<div class="rk-ver">考核圈 · 社交版第一页 v3.5.5</div>' +
     '</div>';
   if (authMode === 'register'){
     refreshCaptcha();
@@ -2128,7 +2179,7 @@ function ensureFeedState(){
     follow:{ posts:[], cursor:null, loading:false, loadingMore:false, error:null, loaded:false, noMore:false, empty:null }
   };
   if (!view.feedSeen) view.feedSeen = {};
-  if (!view.compose) view.compose = { text:'', media:[], share_card:null, mentions:[], replyPolicy:'all', busy:false };
+  if (!view.compose) view.compose = { text:'', media:[], share_card:null, mentions:[], replyPolicy:'all', busy:false, quoteOf:null };
   if (!view.openPostId) view.openPostId = null;
   if (!view.cmtMedia) view.cmtMedia = {};
   if (!view.postDetail) view.postDetail = null;
@@ -2241,6 +2292,11 @@ function renderPostCard(p){
   var liked = p.liked ? 'on' : '';
   var bmed = p.bookmarked ? 'on' : '';
   var rmed = p.reposted ? 'on' : '';
+  // v3.5.5：X RepostWrapper——时间线项顶部「xx 转发了」包装层（纯转发不建帖、互动归原帖）
+  var wrapper = (p.repostWrapper && p.repostWrapper.byNickname)
+    ? '<div class="repost-wrapper"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>'
+      + esc(p.repostWrapper.byNickname) + ' 转发了</div>'
+    : '';
   var head = '<div class="post-head">' +
     '<img class="pa" src="' + avatarUrl(p.authorAvatar) + '" alt="" onerror="this.style.opacity=.4">' +
     '<div class="pmeta"><div class="pname">' + esc(p.authorNick||'已注销') + rpTagHtml(p.reply_policy) + '</div>' +
@@ -2248,13 +2304,14 @@ function renderPostCard(p){
     (mine ? '<div class="pbook" data-action="del-post" data-id="' + p.id + '" title="删除此帖">🗑</div>' : '') +
   '</div>';
   // v3.5.4：💬 只显示评论数，点击进入独立帖子详情视图（feed 卡片不再内嵌评论区）
+  // v3.5.5：🔁 改为弹「转发(纯转发)/引用」选择
   var actions = '<div class="post-actions">' +
     '<span class="pa-item" data-action="open-post-detail" data-id="' + p.id + '" title="查看详情">💬<i>' + (p.commentCount||0) + '</i></span>' +
-    '<span class="pa-item ' + rmed + '" data-action="toggle-repost" data-id="' + p.id + '">🔁<i>' + (p.repostCount||0) + '</i></span>' +
+    '<span class="pa-item ' + rmed + '" data-action="toggle-repost" data-id="' + p.id + '" title="转发 / 引用">🔁<i>' + (p.repostCount||0) + '</i></span>' +
     '<span class="pa-item ' + liked + (p.liked?' liked':'') + '" data-action="toggle-like" data-id="' + p.id + '">❤️<i>' + (p.likeCount||0) + '</i></span>' +
     '<span class="pa-item ' + bmed + '" data-action="toggle-bookmark" data-id="' + p.id + '">🔖</span>' +
   '</div>';
-  return '<article class="post" data-id="' + p.id + '" data-nav="post-detail" data-pid="' + p.id + '">' + head + renderPostText(p.text) +
+  return '<article class="post" data-id="' + p.id + '" data-nav="post-detail" data-pid="' + p.id + '">' + wrapper + head + renderPostText(p.text) +
     renderPostQuote(p) +
     renderPostMedia(p) +
     (p.share_card ? '<div class="post-score">' + renderScoreCardInner(p.share_card) + '</div>' : '') +
@@ -2297,19 +2354,23 @@ function renderPostDetailHtml(p){
   var liked = p.liked ? 'on' : '';
   var bmed = p.bookmarked ? 'on' : '';
   var rmed = p.reposted ? 'on' : '';
+  // v3.5.5：回复范围小标旁加「修改」小按钮（仅作者可见）→ reply_settings
+  var rpBtn = mine
+    ? '<span class="rp-set-btn" data-action="rp-settings" data-id="' + p.id + '" title="谁可以回复">✏️</span>'
+    : '';
   var head = '<div class="post-head">' +
     '<img class="pa" src="' + avatarUrl(p.authorAvatar) + '" alt="" onerror="this.style.opacity=.4">' +
-    '<div class="pmeta"><div class="pname">' + esc(p.authorNick||'已注销') + rpTagHtml(p.reply_policy) + '</div>' +
+    '<div class="pmeta"><div class="pname">' + esc(p.authorNick||'已注销') + rpTagHtml(p.reply_policy) + rpBtn + '</div>' +
     '<div class="psub">' + fmtRel(p.createdAt) + '</div></div>' +
     (mine ? '<div class="pbook" data-action="del-post" data-id="' + p.id + '" title="删除此帖">🗑</div>' : '') +
   '</div>';
   var actions = '<div class="post-actions">' +
-    '<span class="pa-item">💬<i>' + (p.commentCount||0) + '</i></span>' +
+    '<span class="pa-item cmt-count-i" data-id="' + p.id + '">💬<i>' + (p.commentCount||0) + '</i></span>' +
     '<span class="pa-item ' + rmed + '" data-action="toggle-repost" data-id="' + p.id + '">🔁<i>' + (p.repostCount||0) + '</i></span>' +
     '<span class="pa-item ' + liked + (p.liked?' liked':'') + '" data-action="toggle-like" data-id="' + p.id + '">❤️<i>' + (p.likeCount||0) + '</i></span>' +
     '<span class="pa-item ' + bmed + '" data-action="toggle-bookmark" data-id="' + p.id + '">🔖</span>' +
   '</div>';
-  return '<article class="post post-detail-main">' + head + renderPostText(p.text) +
+  return '<article class="post post-detail-main" data-id="' + p.id + '">' + head + renderPostText(p.text) +
     renderPostQuote(p) +
     renderPostMedia(p) +
     (p.share_card ? '<div class="post-score">' + renderScoreCardInner(p.share_card) + '</div>' : '') +
@@ -2325,7 +2386,8 @@ function renderPostDetail(){
   var html = '<div class="pd-topbar"><button class="btn btn-ghost btn-sm" data-action="back-to-feed">‹ 返回</button>' +
     '<div class="pd-title">动态详情</div><div style="width:56px"></div></div>';
   html += renderPostDetailHtml(p);
-  html += '<div class="pd-cmt-head">评论 ' + (p.commentCount||0) + '</div>';
+  html += '<div class="pd-cmt-head">回复 <span id="pd-cmt-cnt">' + (p.commentCount||0) + '</span></div>';
+  html += '<div class="hidden-cmt-entry" id="hidden-cmt-entry"></div>';
   html += '<div class="cmt-list" id="cmt-list-' + id + '"></div>';
   html += '<div class="pd-cmt-fixed"><div class="cm-input-row">' +
     '<input type="text" id="cmt-inp-' + id + '" maxlength="200" placeholder="友善评论…">' +
@@ -2469,72 +2531,209 @@ function toggleBookmark(postId, el){
     })
     .catch(function(){ el.classList.toggle('on', !turningOn); toast('网络错误','warn'); });
 }
-function toggleRepost(postId, el){
-  // MVP-5：转发=生成一条引用原帖的新帖（§4.3），本期不做"取消转发"反向操作
-  var text = prompt('说点什么（可留空直接转发）：') || '';
-  postJSON('kaohe-api/social.php?action=repost', { token:Auth.token, id:postId, text:text })
+// v3.5.5：🔁 改为「转发(纯转发)/引用」选择菜单；纯转发=RepostRelation（不建帖、可取消、计数归原帖）
+function openRepostMenu(postId){
+  openModal(
+    '<h3>转发 / 引用</h3>' +
+    '<div class="sub">选择操作方式</div>' +
+    '<div class="repost-menu">' +
+      '<div class="rm-item" data-action="repost-do" data-id="' + postId + '">' +
+        '<div class="rm-ic">🔁</div><div class="rm-tx"><div class="rm-t">转发（纯转发）</div><div class="rm-d">分享到你的时间线，不复制正文；可取消</div></div></div>' +
+      '<div class="rm-item" data-action="quote-compose" data-id="' + postId + '">' +
+        '<div class="rm-ic">💬</div><div class="rm-tx"><div class="rm-t">引用</div><div class="rm-d">发一条带引用块的新动态</div></div></div>' +
+    '</div>' +
+    '<div class="modal-ft"><button class="btn btn-ghost" data-action="close-modal">取消</button></div>'
+  );
+}
+// v3.5.5：纯转发 action=repost（不带 text）；已转发再点=unrepost 取消；计数用返回 repostCount
+function doRepost(postId){
+  var barEl = document.querySelector('.pa-item[data-action="toggle-repost"][data-id="' + postId + '"]');
+  var turningOff = barEl ? barEl.classList.contains('on') : false;
+  var act = turningOff ? 'unrepost' : 'repost';
+  postJSON('kaohe-api/social.php?action=' + act, { token:Auth.token, id:postId })
     .then(function(r){
       if (apiFail(r)) return;
       if (r.json && r.json.ok){
-        el.classList.add('on');
-        var ic = el.querySelector('i');
-        if (ic) ic.textContent = r.json.repostCount;
-        toast('已转发','good');
+        var on = !turningOff;
+        // 更新所有该帖 🔁 入口（卡片 + 详情页）
+        document.querySelectorAll('.pa-item[data-action="toggle-repost"][data-id="' + postId + '"]').forEach(function(el){
+          el.classList.toggle('on', on);
+          var ic = el.querySelector('i');
+          if (ic && r.json.repostCount!=null) ic.textContent = r.json.repostCount;
+        });
+        // 同步本地 feed 数据
+        ensureFeedState();
+        ['recommend','follow'].forEach(function(t){
+          view.feed[t].posts.forEach(function(p){
+            if (p.id===postId){ p.reposted = on; if (r.json.repostCount!=null) p.repostCount = r.json.repostCount; }
+          });
+        });
+        toast(turningOff ? '已取消转发' : '已转发', 'good');
+        closeModal();
       } else {
-        if (r.json && r.json.err==='notfound') removePostCard(postId);
+        if (r.json && r.json.err==='notfound'){ removePostCard(postId); toast('动态已删除','warn'); }
         else toast(apiMsg(r),'warn');
       }
     })
     .catch(function(){ toast('网络错误','warn'); });
 }
-// v3.5.4 评论组件：头像+昵称+日期+正文+媒体+❤️/🔖/🔁/🗑+嵌套回复
-function cmtItemHtml(c, withReplyBox){
+// v3.5.5 回复组件：头像+昵称+日期+正文+媒体+❤️/🔖/🔁/🗑+嵌套回复；ctx={postId,postAuthor,isPostAuthor}
+// 适配 v3.5.5：Thread 串文（作者本人回复标 🧵）、作者可隐藏/取消隐藏回复、已隐藏回复样式
+function cmtItemHtml(c, withReplyBox, ctx){
+  ctx = ctx || {};
   var text = esc(c.text||'');
   text = text.replace(/@([^\s@，。,.!！?？:：;；、<]+)/g, '<span class="mention">@$1</span>');
   var repTag = c.replyNick ? ' <span class="cmt-reply-tag">回复 @' + esc(c.replyNick) + '</span>' : '';
   var media = (c.media && c.media.length)
     ? '<div class="cmt-media cols-' + Math.min(c.media.length,3) + '">' + c.media.map(function(m){ return renderMediaCell(m); }).join('') + '</div>'
     : '';
+  // v3.5.5：Thread 串联——回复作者==详情帖作者 → 标 🧵 + thread 样式
+  var isThread = ctx.postAuthor && (c.author === ctx.postAuthor);
+  var threadMark = isThread ? '<span class="thread-mark" title="串文">🧵</span>' : '';
+  // v3.5.5：详情帖作者（非回复者本人）可隐藏/取消隐藏某条回复；非作者不显示
+  var pid = ctx.postId || c.post_id || '';
+  var hideBtn = '';
+  if (ctx.isPostAuthor && !c.mine){
+    hideBtn = c.hidden
+      ? '<span class="ca hide-ca" data-action="unhide-reply" data-id="' + pid + '" data-rid="' + c.id + '">取消隐藏</span>'
+      : '<span class="ca hide-ca" data-action="hide-reply" data-id="' + pid + '" data-rid="' + c.id + '">隐藏</span>';
+  }
   var acts = '<div class="cmt-acts">' +
     '<span class="ca ' + (c.liked?'on liked':'') + '" data-action="cmt-like" data-id="' + c.id + '">❤️<i>' + (c.likeCount||0) + '</i></span>' +
     '<span class="ca ' + (c.bookmarked?'on':'') + '" data-action="cmt-bookmark" data-id="' + c.id + '">🔖</span>' +
     '<span class="ca" data-action="cmt-reply" data-id="' + c.id + '">💬 回复</span>' +
     '<span class="ca" data-action="cmt-repost" data-id="' + c.id + '">🔁 转发</span>' +
-    (c.mine ? '<span class="ca" data-action="del-comment" data-id="' + c.id + '" data-pid="' + c.post_id + '">🗑</span>' : '') +
+    hideBtn +
+    (c.mine ? '<span class="ca" data-action="del-comment" data-id="' + c.id + '" data-pid="' + pid + '">🗑</span>' : '') +
   '</div>';
   var rpBox = withReplyBox
     ? '<div class="cmt-reply-box" hidden><input type="text" placeholder="回复 ' + esc(c.authorNick||'') + '…" maxlength="200">' +
-      '<button class="btn btn-primary btn-sm" data-action="send-cmt-reply" data-id="' + c.id + '" data-pid="' + c.post_id + '">回复</button></div>'
+      '<button class="btn btn-primary btn-sm" data-action="send-cmt-reply" data-id="' + c.id + '" data-pid="' + pid + '">回复</button></div>'
     : '';
-  return '<div class="cmt-item" data-cid="' + c.id + '">' +
+  // v3.5.5：时间兼容 c.at(旧) / c.createdAt(新)；已隐藏回复加样式类
+  var when = fmtCmtDate(c.at || c.createdAt);
+  var itemCls = 'cmt-item' + (isThread ? ' thread' : '') + (c.hidden ? ' is-hidden' : '');
+  return '<div class="' + itemCls + '" data-cid="' + c.id + '">' +
     '<div class="cmt-head"><img class="cmt-ava" src="' + avatarUrl(c.authorAvatar) + '" alt="" onerror="this.style.opacity=.4">' +
-    '<div class="cmt-who"><div class="cmt-nick">' + esc(c.authorNick||'已注销') + '</div>' +
-    '<div class="cmt-time">' + fmtCmtDate(c.at) + '</div></div></div>' +
+    '<div class="cmt-who"><div class="cmt-nick">' + threadMark + esc(c.authorNick||'已注销') + (c.hidden ? ' <span class="cmt-hidden-tag">已隐藏</span>' : '') + '</div>' +
+    '<div class="cmt-time">' + when + '</div></div></div>' +
     '<div class="cmt-body">' + repTag + text + '</div>' +
     media + acts + rpBox + '</div>';
+}
+// v3.5.5：把 rootComments/replies 分组渲染为回复树（root 可回复、replies 嵌套「回复@谁」）
+function renderCommentGroups(groups, ctx){
+  if (!groups || !groups.length) return '';
+  return groups.map(function(g){
+    var rh = cmtItemHtml(g.root, true, ctx);
+    var rpHtml = '';
+    if (g.replies && g.replies.length) rpHtml = '<div class="cmt-replies">' + g.replies.map(function(rp){ return cmtItemHtml(rp, false, ctx); }).join('') + '</div>';
+    return rh + rpHtml;
+  }).join('');
+}
+// v3.5.5：同步回复数 UI（评论头 + 详情操作条 💬 + feed 卡片本地数据）
+function updateCmtCountUI(postId, count){
+  if (count==null) return;
+  var hd = document.getElementById('pd-cmt-cnt');
+  if (hd) hd.textContent = count;
+  var pdI = document.querySelector('.post-detail-main[data-id="' + postId + '"] .cmt-count-i i');
+  if (pdI) pdI.textContent = count;
+  var cardI = document.querySelector('.post[data-id="' + postId + '"] .pa-item[data-action="open-post-detail"] i');
+  if (cardI) cardI.textContent = count;
+  ensureFeedState();
+  ['recommend','follow'].forEach(function(t){
+    view.feed[t].posts.forEach(function(p){ if (p.id===postId) p.commentCount = count; });
+  });
 }
 function loadComments(postId){
   var list = document.getElementById('cmt-list-' + postId);
   if (!list) return;
-  list.innerHTML = '<div class="feed-loading" style="padding:14px">加载评论…</div>';
-  postJSON('kaohe-api/social.php?action=comments_of', { token:Auth.token, id:postId })
+  list.innerHTML = '<div class="feed-loading" style="padding:14px">加载回复…</div>';
+  var p = findPostInFeed(postId) || {};
+  var me = Auth.user || {};
+  var isPostAuthor = (p.author === (me.email||'').toLowerCase());
+  var ctx = { postId: postId, postAuthor: p.author, isPostAuthor: isPostAuthor };
+  // v3.5.5：作者可见时带 include_hidden=1，一次性拿隐藏区；非作者后端不返回 hidden
+  var payload = { token:Auth.token, id:postId };
+  if (isPostAuthor) payload.include_hidden = 1;
+  postJSON('kaohe-api/social.php?action=comments_of', payload)
     .then(function(r){
       if (apiFail(r)) return;
       if (r.json && r.json.ok){
+        var count = (r.json.commentCount != null) ? r.json.commentCount : 0;
+        updateCmtCountUI(postId, count);
         var roots = r.json.rootComments || [];
-        if (!roots.length){ list.innerHTML = '<div class="cmt-empty">还没有评论，抢个沙发</div>'; return; }
-        var h = roots.map(function(g){
-          var rh = cmtItemHtml(g.root, true);
-          var rpHtml = '';
-          if (g.replies && g.replies.length) rpHtml = '<div class="cmt-replies">' + g.replies.map(function(rp){ return cmtItemHtml(rp, false); }).join('') + '</div>';
-          return rh + rpHtml;
-        }).join('');
-        list.innerHTML = h;
+        // 已隐藏回复入口（仅作者可见）：hiddenComments 为 rootComments 同构分组或扁平列表
+        var hEntry = document.getElementById('hidden-cmt-entry');
+        if (hEntry){
+          var hc = r.json.hiddenComments || [];
+          var hcArr = hc.map(function(x){ return (x && x.root) ? x : { root:x, replies:[] }; });
+          if (isPostAuthor && hcArr.length){
+            hEntry.innerHTML = '<div class="hide-entry" data-action="toggle-hidden-block">' +
+              '<span>已隐藏回复 (' + hcArr.length + ')</span><span class="he-arrow">▾</span></div>' +
+              '<div class="hidden-cmt-block" hidden>' + renderCommentGroups(hcArr, ctx) + '</div>';
+          } else hEntry.innerHTML = '';
+        }
+        if (!roots.length){ list.innerHTML = '<div class="cmt-empty">还没有回复，来抢沙发</div>'; return; }
+        list.innerHTML = renderCommentGroups(roots, ctx);
       } else {
-        list.innerHTML = '<div class="cmt-empty" style="color:var(--danger)">评论加载失败</div>';
+        list.innerHTML = '<div class="cmt-empty" style="color:var(--danger)">回复加载失败</div>';
       }
     })
     .catch(function(){ list.innerHTML = '<div class="cmt-empty" style="color:var(--danger)">网络错误</div>'; });
+}
+// v3.5.5：展开/收起已隐藏回复区
+function toggleHiddenBlock(){
+  var blk = document.querySelector('.hidden-cmt-block');
+  if (!blk) return;
+  var opening = blk.hasAttribute('hidden');
+  blk.toggleAttribute('hidden', !opening);
+  var arr = document.querySelector('.hide-entry .he-arrow');
+  if (arr) arr.textContent = opening ? '▴' : '▾';
+}
+// v3.5.5：根帖作者隐藏/取消隐藏某条回复（hide_reply/unhide_reply；非作者后端 403）
+function hideReply(postId, replyId, hidden){
+  var act = hidden ? 'hide_reply' : 'unhide_reply';
+  postJSON('kaohe-api/social.php?action=' + act, { token:Auth.token, id:postId, reply_id:replyId })
+    .then(function(r){
+      if (apiFail(r)) return;
+      if (r.json && r.json.ok){
+        toast(hidden ? '已隐藏该回复' : '已取消隐藏', 'good');
+        loadComments(postId);
+      } else toast(apiMsg(r),'warn');
+    })
+    .catch(function(){ toast('网络错误','warn'); });
+}
+// v3.5.5：作者修改自己帖的回复范围（reply_settings：all/following/mentioned）
+function openRpSettings(postId){
+  var p = findPostInFeed(postId) || {};
+  var cur = p.reply_policy || 'all';
+  openModal(
+    '<h3>谁可以回复</h3>' +
+    '<div class="sub">仅你可修改，发布后随时可调</div>' +
+    '<div class="rp-set-list">' +
+      '<div class="rp-set-item ' + (cur==='all'?'active':'') + '" data-action="rp-pick" data-id="' + postId + '" data-rp="all"><b>🌐 全部</b><span>所有人都能回复</span></div>' +
+      '<div class="rp-set-item ' + (cur==='following'?'active':'') + '" data-action="rp-pick" data-id="' + postId + '" data-rp="following"><b>👥 我关注的</b><span>仅你关注的人可回复</span></div>' +
+      '<div class="rp-set-item ' + (cur==='mentioned'?'active':'') + '" data-action="rp-pick" data-id="' + postId + '" data-rp="mentioned"><b>📣 仅提及</b><span>仅你 @ 过的人可回复</span></div>' +
+    '</div>' +
+    '<div class="modal-ft"><button class="btn btn-ghost" data-action="close-modal">关闭</button></div>'
+  );
+}
+function rpSettingsPick(postId, policy){
+  postJSON('kaohe-api/social.php?action=reply_settings', { token:Auth.token, id:postId, reply_policy:policy })
+    .then(function(r){
+      if (apiFail(r)) return;
+      if (r.json && r.json.ok){
+        ensureFeedState();
+        ['recommend','follow'].forEach(function(t){
+          view.feed[t].posts.forEach(function(p){ if (p.id===postId) p.reply_policy = policy; });
+        });
+        toast('回复范围已更新','good');
+        closeModal();
+        render();  // 重渲染详情页以刷新 rpTag
+        loadComments(postId);  // render() 清空了回复树容器，需重新拉取
+      } else toast(apiMsg(r),'warn');
+    })
+    .catch(function(){ toast('网络错误','warn'); });
 }
 // v3.5.4 评论互动
 function cmtLike(cid, el){
@@ -2574,11 +2773,12 @@ function cmtReplyToggle(cid){
   if (opening) box.removeAttribute('hidden'); else box.setAttribute('hidden','');
   if (opening){ var inp = box.querySelector('input'); if (inp) inp.focus(); }
 }
+// v3.5.5：回复某条回复 → action=post + reply_to_post_id=该回复帖 id（不再调 action=comment）
 function sendCmtReply(rootCid, postId){
   var inp = document.querySelector('.cmt-item[data-cid="' + rootCid + '"] .cmt-reply-box input');
   var text = inp ? inp.value.trim() : '';
   if (!text){ toast('回复内容不能为空','warn'); return; }
-  postJSON('kaohe-api/social.php?action=comment', { token:Auth.token, id:postId, text:text, reply_to:rootCid })
+  postJSON('kaohe-api/social.php?action=post', { token:Auth.token, reply_to_post_id:rootCid, text:text })
     .then(function(r){
       if (apiFail(r)) return;
       if (r.json && r.json.ok){
@@ -2635,26 +2835,23 @@ function renderCmtMediaRow(postId){
       '<span style="position:absolute;top:2px;right:4px;color:#fff;background:rgba(0,0,0,.4);border-radius:50%;width:18px;height:18px;font-size:12px;line-height:18px;text-align:center;cursor:pointer" data-action="cmt-remove-media" data-pid="' + postId + '" data-i="' + i + '">✕</span></div>';
   }).join('') || '';
 }
+// v3.5.5：详情页底部固定输入 → action=post + reply_to_post_id=当前详情帖 id（不再调 action=comment）
 function sendComment(postId){
   var inp = document.getElementById('cmt-inp-' + postId);
   var text = inp ? inp.value.trim() : '';
   var med = (view.cmtMedia && view.cmtMedia[postId]) ? view.cmtMedia[postId].slice() : [];
-  if (!text && !med.length){ toast('评论内容不能为空','warn'); return; }
-  var payload = { token:Auth.token, id:postId, text:text };
+  if (!text && !med.length){ toast('回复内容不能为空','warn'); return; }
+  var payload = { token:Auth.token, reply_to_post_id:postId, text:text };
   if (med.length) payload.media = med.map(function(m){ return m.id; });
-  postJSON('kaohe-api/social.php?action=comment', payload)
+  postJSON('kaohe-api/social.php?action=post', payload)
     .then(function(r){
       if (apiFail(r)) return;
       if (r.json && r.json.ok){
         if (inp) inp.value = '';
         if (view.cmtMedia && view.cmtMedia[postId]) view.cmtMedia[postId] = [];
         renderCmtMediaRow(postId);
-        loadComments(postId);
-        var actI = document.querySelector('.post[data-id="' + postId + '"] .pa-item[data-action="open-post-detail"] i');
-        if (actI) actI.textContent = r.json.commentCount;
-        var pd = document.querySelector('.pd-cmt-head');
-        if (pd) pd.textContent = '评论 ' + (r.json.commentCount||0);
-        toast('评论成功','good');
+        loadComments(postId);  // 刷新回复树并同步 💬 数（含 commentCount）
+        toast('回复成功','good');
       } else {
         toast(apiMsg(r),'warn');
       }
@@ -2679,7 +2876,13 @@ function delPost(postId){
 /* ---- 发帖面板 ---- */
 function openCompose(){
   ensureFeedState();
-  view.compose = { text:'', media:[], share_card:null, mentions:[], replyPolicy:'all', busy:false };
+  view.compose = { text:'', media:[], share_card:null, mentions:[], replyPolicy:'all', busy:false, quoteOf:null };
+  renderComposeModal();
+}
+// v3.5.5：引用模式——复用发帖面板，标题「引用动态」，提交带 quoted_post_id
+function openQuoteCompose(postId){
+  ensureFeedState();
+  view.compose = { text:'', media:[], share_card:null, mentions:[], replyPolicy:'all', busy:false, quoteOf:postId };
   renderComposeModal();
 }
 function renderComposeModal(){
@@ -2701,8 +2904,25 @@ function renderComposeModal(){
   }).join('');
   var scoreHtml = c.share_card ? '<div class="post-score">' + renderScoreCardInner(c.share_card) +
     '<span class="ps-remove" data-action="cm-remove-score">✕</span></div>' : '';
+  // v3.5.5：引用模式——显示被引用帖只读预览块
+  var quotePreview = '';
+  if (c.quoteOf){
+    var qp = findPostInFeed(c.quoteOf);
+    if (qp){
+      var qpMedia = (qp.media && qp.media.length)
+        ? '<div class="post-media cols-' + Math.min(qp.media.length,3) + '">' + qp.media.map(function(m){ return renderMediaCell(m); }).join('') + '</div>'
+        : '';
+      quotePreview = '<div class="quote-source"><div class="qs-head"><img src="' + avatarUrl(qp.authorAvatar) + '" alt="" onerror="this.style.opacity=.4">' +
+        esc(qp.authorNick||'已注销') + ' <span class="qs-time">· ' + fmtRel(qp.createdAt) + '</span></div>' +
+        '<div class="qs-text">' + esc(qp.text||'') + '</div>' + qpMedia + '</div>';
+    } else {
+      quotePreview = '<div class="post-quote"><div class="pq-deleted">引用的原帖不可用</div></div>';
+    }
+  }
+  var modalTitle = c.quoteOf ? '引用动态' : '发动态';
+  var submitTxt = c.quoteOf ? '引用' : '发帖';
   openModal(
-    '<h3>发动态</h3>' +
+    '<h3>' + modalTitle + '</h3>' +
     '<div class="fld"><textarea id="cm-text" rows="4" maxlength="600" placeholder="说点什么…" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;outline:none;resize:vertical;font-size:15px">' + esc(c.text) + '</textarea>' +
       '<div class="hint" id="cm-count" style="' + (c.text.length>500?'color:var(--danger);font-weight:700':'') + '">' + c.text.length + '/500</div></div>' +
     '<div class="cm-media-grid">' + mediaHtml + '</div>' +
@@ -2713,6 +2933,7 @@ function renderComposeModal(){
     '</div>' +
     (chipsHtml ? '<div class="tag-chips">' + chipsHtml + '</div>' : '') +
     scoreHtml +
+    quotePreview +
     '<div class="fld"><label>谁可以回复</label>' +
       '<div class="seg-tabs">' +
         '<div class="st ' + (c.replyPolicy==='all'?'active':'') + '" data-action="cm-rp" data-rp="all">🌐 全部</div>' +
@@ -2721,7 +2942,7 @@ function renderComposeModal(){
       '</div></div>' +
     '<div class="modal-ft">' +
       '<button class="btn btn-ghost" data-action="close-modal">取消</button>' +
-      '<button class="btn btn-primary" data-action="cm-submit" ' + (c.busy?'disabled':'') + '>' + (c.busy?'发布中…':'发帖') + '</button>' +
+      '<button class="btn btn-primary" data-action="cm-submit" ' + (c.busy?'disabled':'') + '>' + (c.busy?'发布中…':submitTxt) + '</button>' +
     '</div>'
   );
   var ta = document.getElementById('cm-text');
@@ -2853,13 +3074,14 @@ function cmSubmit(){
   var payload = { token:Auth.token, text:c.text.trim(), reply_policy:c.replyPolicy, client_req_id:'c' + Date.now() + Math.random().toString(36).slice(2,8) };
   if (c.media.length) payload.media = c.media.map(function(m){ return m.id; });
   if (c.share_card) payload.score = c.share_card;
+  if (c.quoteOf) payload.quoted_post_id = c.quoteOf;  // v3.5.5：引用帖
   postJSON('kaohe-api/social.php?action=post', payload)
     .then(function(r){
       c.busy = false;
       if (apiFail(r)){ renderComposeModal(); return; }
       if (r.json && r.json.ok){
         closeModal();
-        toast('发布成功','good');
+        toast(c.quoteOf ? '引用成功' : '发布成功','good');
         view.feed.recommend.posts.unshift(r.json.post);
         view.feed.recommend.loaded = true;
         view.feedSeen[r.json.post.id] = 1;
@@ -3122,7 +3344,9 @@ function handleAction(el, e){
     case 'circle-load-more': loadFeed('follow', false); break;
     case 'toggle-like': toggleLike(el.getAttribute('data-id'), el); break;
     case 'toggle-bookmark': toggleBookmark(el.getAttribute('data-id'), el); break;
-    case 'toggle-repost': toggleRepost(el.getAttribute('data-id'), el); break;
+    case 'toggle-repost': openRepostMenu(el.getAttribute('data-id')); break;
+    case 'repost-do': doRepost(el.getAttribute('data-id')); break;
+    case 'quote-compose': openQuoteCompose(el.getAttribute('data-id')); break;
     case 'send-comment': sendComment(el.getAttribute('data-id')); break;
     case 'del-post': delPost(el.getAttribute('data-id')); break;
     case 'open-post-detail': openPostDetail(el.getAttribute('data-id')); break;
@@ -3133,6 +3357,11 @@ function handleAction(el, e){
     case 'cmt-repost': cmtRepost(el.getAttribute('data-id')); break;
     case 'del-comment': delComment(el.getAttribute('data-id'), el.getAttribute('data-pid')); break;
     case 'send-cmt-reply': sendCmtReply(el.getAttribute('data-id'), el.getAttribute('data-pid')); break;
+    case 'hide-reply': hideReply(el.getAttribute('data-id'), el.getAttribute('data-rid'), true); break;
+    case 'unhide-reply': hideReply(el.getAttribute('data-id'), el.getAttribute('data-rid'), false); break;
+    case 'toggle-hidden-block': toggleHiddenBlock(); break;
+    case 'rp-settings': openRpSettings(el.getAttribute('data-id')); break;
+    case 'rp-pick': rpSettingsPick(el.getAttribute('data-id'), el.getAttribute('data-rp') || 'all'); break;
     case 'cmt-remove-media': {
       var cpid = el.getAttribute('data-pid');
       var ci = parseInt(el.getAttribute('data-i'),10);
