@@ -37,26 +37,19 @@ if ($action === 'follow') {
     }
     $adminEmail = strtolower($admin['email'] ?? '');
 
-    // 读当前用户自己的数据文件；空态按 load.php/save.php 的信封结构初始化再写
-    $file = user_data_file($u['email']);
-    $d = db_read_json($file, null);
-    if (!is_array($d)) $d = ['ok' => true, 'savedAt' => null, 'data' => []];
-    if (!isset($d['ok'])) $d['ok'] = true;
-    if (!isset($d['data']) || !is_array($d['data'])) $d['data'] = [];
-
-    $followed = isset($d['data']['followed']) && is_array($d['data']['followed']) ? $d['data']['followed'] : [];
-
-    // 幂等：已关注则不重复写盘
-    if (!in_array($adminEmail, $followed, true)) {
-        $followed[] = $adminEmail;
-        $d['data']['followed'] = array_values($followed);
-        $d['savedAt'] = now();
-        if (!db_write_json($file, $d)) {
-            json_out(['ok' => false, 'err' => 'io', 'msg' => '保存失败，请稍后重试']);
-        }
+    // v3.5.0：关注关系唯一 canonical 落 follows.php（与 social.php 同一份），
+    // 废弃每用户文件里的 data.followed（消除双份数据源）。对外响应形态不变。
+    $meEmail = strtolower($u['email']);
+    $ok = db_transact_json(DATA_DIR . 'follows.php', [], function($fl) use ($meEmail, $adminEmail) {
+        if (!isset($fl[$meEmail]) || !is_array($fl[$meEmail])) $fl[$meEmail] = [];
+        if (!in_array($adminEmail, $fl[$meEmail], true)) $fl[$meEmail][] = $adminEmail;
+        return $fl;
+    });
+    if (!$ok) {
+        json_out(['ok' => false, 'err' => 'io', 'msg' => '保存失败，请稍后重试']);
     }
 
-    json_out(['ok' => true, 'followed' => array_values($followed), 'admin' => public_user($admin)]);
+    json_out(['ok' => true, 'followed' => [$adminEmail], 'admin' => public_user($admin)]);
 }
 
 json_out(['ok' => false, 'err' => 'action', 'msg' => '未知操作']);

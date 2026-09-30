@@ -12,6 +12,9 @@ define('CONFIG_FILE',  DATA_DIR . 'config.php');
 define('OLD_DATA_FILE', DATA_DIR . 'kaohe-data.json');   // 旧全家数据（迁移时读取，纯 JSON）
 define('BACKUP_DIR',   DATA_DIR . 'backups/');
 define('AVATAR_DIR',   DATA_DIR . 'avatars/');
+define('UPLOAD_DIR',   DATA_DIR . 'uploads/');   // 帖子媒体：_pending/ 待处理 + done/ + 正式区
+define('UPLOAD_PENDING_DIR', UPLOAD_DIR . '_pending/');
+define('UPLOAD_DONE_DIR',    UPLOAD_DIR . 'done/');
 
 // 守卫前缀（§7）：.php 后缀 + exit 守卫，防 nginx 直接吐数据
 define('GUARD', "<?php http_response_code(403); exit; ?>\n");
@@ -73,6 +76,43 @@ function db_write_json($path, $arr) {
         return false;
     }
     return true;
+}
+
+/*
+ * 临界区事务：持锁 → 读 → 改 → 原子写 → 放锁。
+ * 解决并发 read-modify-write 丢失更新（点赞/发帖/评论并发丢更新）。
+ *  - $lockPath = {target}.lock，flock(LOCK_EX|LOCK_NB) 非阻塞抢锁，10ms 退避，约 2s(200次)超时返回 false
+ *  - $mutator(array $data): 返回新的整份数据；返回 null 表示无改动、不落盘
+ *  - true=成功(或无改动)；false=拿不到锁/写失败（调用方回 err:"busy"/"io"）
+ * 注意：所有社交写动作必须走本函数，禁止「先读改完、再单独 db_write_json」。
+ */
+function db_transact_json($path, $default, callable $mutator) {
+    $dir = dirname($path);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+    $lockPath = $path . '.lock';
+    $lf = @fopen($lockPath, 'c+');
+    if (!$lf) return false;
+    $attempts = 0;
+    $wouldBlock = 0;
+    while (!flock($lf, LOCK_EX | LOCK_NB, $wouldBlock)) {
+        if (++$attempts >= 200) {   // ~2s 超时
+            fclose($lf);
+            return false;
+        }
+        usleep(10000);              // 10ms 退避
+    }
+    try {
+        $data = db_read_json($path, $default);
+        if (!is_array($data)) $data = $default;
+        $new = $mutator($data);
+        if ($new === null) return true;   // 无改动
+        return db_write_json($path, $new);
+    } finally {
+        flock($lf, LOCK_UN);
+        fclose($lf);
+    }
 }
 
 // ---------- 配置 ----------

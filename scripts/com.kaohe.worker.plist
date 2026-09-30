@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  com.kaohe.worker.plist — 考核小管家 Mac 压缩工人 launchd 模板
+
+  行为：每 StartInterval 秒跑一轮 kaohe-worker.sh（脚本自身做单轮，无活即静默退出）。
+  本文件仅为模板，本期不安装/不加载（硬约束：只写文件、不部署）。
+
+  安装步骤（部署期执行，本期不做）：
+    1. 把 kaohe-worker.sh 安装到 ~/.local/bin/kaohe-worker.sh 并 chmod +x；
+    2. 按需改下方 ProgramArguments 路径、日志路径（plist 不展开 ~，必须绝对路径）；
+    3. cp com.kaohe.worker.plist ~/Library/LaunchAgents/com.kaohe.worker.plist
+    4. launchctl load ~/Library/LaunchAgents/com.kaohe.worker.plist
+       （卸载：launchctl unload ...；立即手动触发：launchctl start com.kaohe.worker）
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.kaohe.worker</string>
+
+    <!-- 脚本路径：改成实际安装路径（当前用户 home 为 /Users/fangliang，按机替换） -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/fangliang/.local/bin/kaohe-worker.sh</string>
+    </array>
+
+    <!-- 每 45 秒一轮（方案要求 30~60s 区间） -->
+    <key>StartInterval</key>
+    <integer>45</integer>
+
+    <!-- 登录即跑一轮 -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- 日志：脚本自身写 ~/.local/log/kaohe-worker.log；
+         launchd 的 stdout/stderr 单独留档，正常轮次为空 -->
+    <key>StandardOutPath</key>
+    <string>/Users/fangliang/.local/log/kaohe-worker.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/fangliang/.local/log/kaohe-worker.err.log</string>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/fangliang/.cache/kaohe-worker</string>
+
+    <!-- 不请求网络/无权/通知，保持最小权限 -->
+    <key>LowPriorityIO</key>
+    <true/>
+</dict>
+</plist>

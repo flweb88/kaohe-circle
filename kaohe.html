@@ -14,6 +14,7 @@
   --bg:#F6F7F9; --card:#FFFFFF; --border:#E8EAF0;
   --text:#23262F; --muted:#757B8A;
   --radius:16px; --shadow:0 2px 10px rgba(30,34,50,.05);
+  --accent:#1D7CF2;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
@@ -446,6 +447,67 @@ footer .fb-link:hover{text-decoration:underline}
   .rk-brand h2{font-size:24px}
   .rk-ava-grid{gap:8px}
 }
+
+/* ===== MVP-5 动态页新增样式 ===== */
+.compose-entry{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow);margin-bottom:10px;cursor:pointer}
+.compose-entry .ce-ava{width:36px;height:36px;border-radius:50%;background:#F1F2F6;flex:none;object-fit:cover}
+.compose-entry .ce-ph{flex:1;color:var(--muted);font-size:14px}
+.compose-entry .ce-btn{flex:none}
+.feed-tabs{position:relative}
+.feed-refresh{position:absolute;right:4px;top:8px;color:var(--muted);cursor:pointer;padding:6px;border-radius:8px}
+.feed-refresh:hover{color:var(--primary);background:var(--primary-soft)}
+.feed-loading{padding:48px 20px;text-align:center;color:var(--muted)}
+.feed-end{padding:20px;text-align:center;color:var(--muted);font-size:12.5px}
+.feed-more{padding:10px 0 20px}
+.rp-tag{display:inline-block;font-size:10.5px;font-weight:600;color:var(--muted);background:#F1F2F6;border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:middle}
+.post-actions .pa-item i{font-style:normal;margin-left:2px;font-size:12px}
+.post-actions .pa-item.on.liked{color:var(--danger)}
+.post-media{display:grid;gap:6px;margin-top:8px}
+.post-media.cols-1{grid-template-columns:1fr}
+.post-media.cols-2{grid-template-columns:1fr 1fr}
+.post-media.cols-3{grid-template-columns:1fr 1fr 1fr}
+.media-cell{border-radius:10px;overflow:hidden;background:#F1F2F6;aspect-ratio:1;cursor:zoom-in;position:relative}
+.media-cell img{width:100%;height:100%;object-fit:cover;display:block}
+.media-cell.wide{aspect-ratio:auto;cursor:default}
+.media-cell.wide video,.media-cell.wide audio{width:100%;display:block;border-radius:10px}
+.media-ph{padding:22px;text-align:center;color:var(--muted);font-size:13px;background:#F6F7F9;border-radius:10px}
+.media-ph.fail{color:var(--danger);background:var(--danger-soft)}
+.media-ph .mp-ic{display:block;font-size:20px;margin-bottom:4px}
+.cmt-list{margin:8px 0;max-height:260px;overflow-y:auto}
+.cmt-item{padding:7px 4px;font-size:13.5px;border-top:1px dashed var(--border)}
+.cmt-item b{color:var(--text)}
+.cmt-time{color:var(--muted);font-size:11px;margin-left:6px}
+.cmt-input-row{display:flex;gap:8px;margin-top:6px}
+.cmt-input-row input{flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;background:#FBFCFF;font-size:14px}
+.comment-box{margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)}
+/* 发帖面板 */
+.cm-media-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.cm-media{position:relative;border-radius:10px;overflow:hidden;background:#F1F2F6;aspect-ratio:1}
+.cm-media img{width:100%;height:100%;object-fit:cover}
+.cm-mediaplay{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--muted)}
+.cm-badge{position:absolute;left:4px;bottom:4px;right:4px;font-size:10.5px;font-weight:600;padding:3px 6px;border-radius:6px;text-align:center;background:rgba(255,255,255,.92)}
+.cm-badge.pend{background:var(--primary-soft);color:var(--primary)}
+.cm-badge.fail{background:var(--danger-soft);color:var(--danger)}
+.cm-badge.ok{background:var(--success-soft);color:var(--success)}
+.ps-remove{position:absolute;top:6px;right:10px;cursor:pointer;color:var(--muted);font-weight:700}
+.post-score{position:relative}
+/* @提及搜索结果 */
+.at-results{max-height:280px;overflow-y:auto;margin-top:8px}
+.at-row{display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:10px;cursor:pointer}
+.at-row:hover{background:var(--primary-soft)}
+.at-row .at-ava{width:32px;height:32px;border-radius:50%;object-fit:cover;background:#F1F2F6}
+/* 成绩卡选择 */
+.score-pick{padding:11px 12px;border:1.5px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;background:#FBFCFF}
+.score-pick:hover{border-color:var(--primary);background:var(--primary-soft)}
+.score-pick .sp-name{font-weight:700;font-size:14.5px}
+.score-pick .sp-row{font-size:12px;color:var(--muted);margin-top:3px}
+.score-pick .sp-rw{font-size:13px;font-weight:700;color:var(--primary);margin-top:3px}
+/* 窄屏适配 */
+@media(max-width:480px){
+  .post-actions{gap:10px;font-size:12px}
+  .post-media.cols-3{grid-template-columns:1fr 1fr 1fr}
+  .cm-media-grid{grid-template-columns:repeat(3,1fr)}
+}
 </style>
 </head>
 <body>
@@ -453,7 +515,7 @@ footer .fb-link:hover{text-decoration:underline}
 <div id="auth-root" style="display:none"></div>
 <div id="app">
   <main id="main"></main>
-  <footer>考核小管家 v3.4.0 · 考核圈社交版<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
+  <footer>考核小管家 v3.5.0 · 考核圈社交版<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
 </div>
 <nav class="tabbar" id="tabbar">
   <button class="tb" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>首页</button>
@@ -578,7 +640,7 @@ var ICONS = {
   heart:{ n:'孝心', svg:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/>' },
   star:{ n:'优秀', svg:'<path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/>' }
 };
-var COLORS = ['#2563EB','#16A34A','#1D7CF2','#9333EA','#DB2777','#0EA5E9','#D97706','#64748B'];
+var COLORS = ['#2563EB','#16A34A','#1D7CF2','#9333EA','#DB2777','#0EA5E9','#3B82F6','#64748B'];
 function iconSvg(key, cls){
   var it = ICONS[key] || ICONS.star;
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '+(cls||'')+'>'+it.svg+'</svg>';
@@ -814,7 +876,7 @@ function renderAuth(){
   }
   document.getElementById('auth-root').innerHTML =
     '<div class="rk-wrap">' + brandHtml + body +
-      '<div class="rk-ver">考核圈 · 社交版第一页 v3.4.0</div>' +
+      '<div class="rk-ver">考核圈 · 社交版第一页 v3.5.0</div>' +
     '</div>';
   if (authMode === 'register'){
     refreshCaptcha();
@@ -1982,13 +2044,18 @@ function render(){
   else if (view.tab==='habits') html = renderHabits();
   else if (view.tab==='account') html = renderAccount();
   else if (view.tab==='me') html = renderMe();
-  else if (view.tab==='circle') html = renderComingSoon('动态（分享）','动态（分享）功能建设中，敬请期待');
+  else if (view.tab==='circle') html = renderCircle();
   else if (view.tab==='msgs') html = renderComingSoon('消息（私信/通知）','消息（私信/通知）功能建设中，敬请期待');
   else html = renderHistory();
   if (!storageOk) html = '<div class="banner">数据无法保存：当前浏览器以文件方式打开时不允许本地存储（常见于 Safari）。请改用 <b>Chrome</b> 打开本文件，数据才能长期保存；当前操作仅临时有效，建议先到「历史记录」页导出备份。</div>' + html;
   main.innerHTML = html;
   updateChip();
   bindHabitExpands();
+  if (view.tab==='circle'){
+    ensureFeedState();
+    var t0 = view.circleTab||'recommend';
+    if (!view.feed[t0].loaded && !view.feed[t0].loading) loadFeed(t0, false);
+  }
 }
 /* 占位页：动态/消息尚未实现 */
 function renderComingSoon(title, desc){
@@ -1999,6 +2066,539 @@ function renderComingSoon(title, desc){
     '<div class="t">' + esc(title) + '</div>' +
     '<div>' + esc(desc) + '</div></div>';
 }
+
+/* ================= MVP-5 动态核心 ================= */
+function ensureFeedState(){
+  if (!view.feed) view.feed = {
+    recommend:{ posts:[], cursor:null, loading:false, loadingMore:false, error:null, loaded:false, noMore:false },
+    follow:{ posts:[], cursor:null, loading:false, loadingMore:false, error:null, loaded:false, noMore:false, empty:null }
+  };
+  if (!view.feedSeen) view.feedSeen = {};
+  if (!view.compose) view.compose = { text:'', media:[], share_card:null, mentions:[], replyPolicy:'all', busy:false };
+  if (!view.openPostId) view.openPostId = null;
+}
+function mediaUrl(id, v){
+  return 'kaohe-api/media.php?action=raw&f=' + encodeURIComponent(id) + '&v=' + (v||'orig') +
+    (Auth.token ? '&token=' + encodeURIComponent(Auth.token) : '');
+}
+function fmtRel(s){
+  if (!s) return '';
+  var d = new Date(String(s).replace(' ','T'));
+  if (isNaN(d.getTime())) return s;
+  var diff = (Date.now() - d.getTime())/1000;
+  if (diff < 60) return '刚刚';
+  if (diff < 3600) return Math.floor(diff/60) + ' 分钟前';
+  if (diff < 86400) return Math.floor(diff/3600) + ' 小时前';
+  if (diff < 86400*7) return Math.floor(diff/86400) + ' 天前';
+  return String(s).slice(0,10);
+}
+function rpTagHtml(rp){
+  if (rp==='following') return '<span class="rp-tag">👥 关注可评</span>';
+  if (rp==='mentioned') return '<span class="rp-tag">📣 提及可评</span>';
+  return '<span class="rp-tag">🌐 公开</span>';
+}
+function renderPostText(t){
+  if (!t) return '';
+  var safe = esc(t);
+  safe = safe.replace(/@([^\s@，。,.!！?？:：;；、<]+)/g, '<span class="mention">@$1</span>');
+  return '<div class="post-text">' + safe + '</div>';
+}
+function renderScoreCardInner(c){
+  c = c || {};
+  var wC = c.weekCheckins||0, wT = c.weekTotal||0;
+  var pct = wT>0 ? Math.min(100, Math.round(wC/wT*100)) : 0;
+  return '<div class="ps-top"><span class="ps-name">🏅 ' + esc(c.habitName||'') + '</span>' +
+         '<span class="ps-rw">+' + (c.rewardMinutes||0) + ' 分钟</span></div>' +
+         '<div class="ps-row">' + esc(c.cycleStart||'') + ' ~ ' + esc(c.cycleEnd||'') + ' · 达标 ' + wC + '/' + wT + '</div>' +
+         '<div class="ps-bar"><i style="width:' + pct + '%"></i></div>' +
+         '<div class="ps-foot">打卡成绩分享</div>';
+}
+function renderPostMedia(p){
+  if (!p.media || !p.media.length) return '';
+  var items = p.media.map(function(m){
+    if (m.status==='pending') return '<div class="media-ph"><span class="mp-ic">⏳</span>处理中…</div>';
+    if (m.status==='failed') return '<div class="media-ph fail"><span class="mp-ic">⚠️</span>处理失败</div>';
+    if (m.kind==='image'){
+      return '<div class="media-cell"><img src="' + mediaUrl(m.id,'sm') + '" data-orig="' + mediaUrl(m.id,'orig') + '" loading="lazy" ' +
+        'onclick="loadOrig(this)" ' +
+        'onerror="this.outerHTML=\'<div class=&quot;media-ph fail&quot;><span class=mp-ic>⚠️</span>加载失败</div>\'"></div>';
+    }
+    if (m.kind==='video') return '<div class="media-cell wide"><video controls preload="metadata" src="' + mediaUrl(m.id,'orig') + '"></video></div>';
+    if (m.kind==='audio') return '<div class="media-cell wide"><audio controls src="' + mediaUrl(m.id,'orig') + '"></audio></div>';
+    return '';
+  }).join('');
+  return '<div class="post-media cols-' + Math.min(p.media.length,3) + '">' + items + '</div>';
+}
+function loadOrig(img){
+  var o = img.getAttribute('data-orig');
+  if (o && img.src !== o) img.src = o;
+}
+function renderPostCard(p){
+  ensureFeedState();
+  var me = Auth.user || {};
+  var mine = (p.author === (me.email||'').toLowerCase());
+  var liked = p.liked ? 'on' : '';
+  var bmed = p.bookmarked ? 'on' : '';
+  var rmed = p.reposted ? 'on' : '';
+  var commentsOpen = (view.openPostId === p.id);
+  var head = '<div class="post-head">' +
+    '<img class="pa" src="' + avatarUrl(p.authorAvatar) + '" alt="" onerror="this.style.opacity=.4">' +
+    '<div class="pmeta"><div class="pname">' + esc(p.authorNick||'已注销') + rpTagHtml(p.reply_policy) + '</div>' +
+    '<div class="psub">' + fmtRel(p.createdAt) + '</div></div>' +
+    (mine ? '<div class="pbook" data-action="del-post" data-id="' + p.id + '" title="删除此帖">🗑</div>' : '') +
+  '</div>';
+  var actions = '<div class="post-actions">' +
+    '<span class="pa-item" data-action="toggle-comment" data-id="' + p.id + '">💬<i>' + (p.commentCount||0) + '</i></span>' +
+    '<span class="pa-item ' + rmed + '" data-action="toggle-repost" data-id="' + p.id + '">🔁<i>' + (p.repostCount||0) + '</i></span>' +
+    '<span class="pa-item ' + liked + (p.liked?' liked':'') + '" data-action="toggle-like" data-id="' + p.id + '">❤️<i>' + (p.likeCount||0) + '</i></span>' +
+    '<span class="pa-item ' + bmed + '" data-action="toggle-bookmark" data-id="' + p.id + '">🔖</span>' +
+  '</div>';
+  var cmtBox = '<div class="comment-box" ' + (commentsOpen?'':'hidden') + '>' +
+    '<div class="cmt-list" id="cmt-list-' + p.id + '"></div>' +
+    '<div class="cmt-input-row"><input type="text" id="cmt-inp-' + p.id + '" maxlength="200" placeholder="友善评论…">' +
+    '<button class="btn btn-primary btn-sm" data-action="send-comment" data-id="' + p.id + '">发送</button></div></div>';
+  return '<article class="post" data-id="' + p.id + '">' + head + renderPostText(p.text) +
+    renderPostMedia(p) +
+    (p.share_card ? '<div class="post-score">' + renderScoreCardInner(p.share_card) + '</div>' : '') +
+    actions + cmtBox + '</article>';
+}
+function feedListHtml(s, tab){
+  if (s.loading && !s.posts.length) return '<div class="feed-loading">正在加载动态…</div>';
+  if (s.error && !s.posts.length)
+    return '<div class="empty"><div class="t">加载失败</div><div>' + esc(s.error) + '</div>' +
+           '<div style="margin-top:14px"><button class="btn btn-ghost" data-action="circle-reload">重新加载</button></div></div>';
+  if (!s.posts.length){
+    if (tab==='follow' && s.empty==='no_follow')
+      return '<div class="empty"><div style="width:64px;height:64px;border-radius:50%;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="t">你还没有关注任何人</div><div>去「推荐」看看大家在分享什么吧</div></div>';
+    return '<div class="empty"><div class="t">还没有动态</div><div>发第一条吧</div></div>';
+  }
+  var h = s.posts.map(renderPostCard).join('');
+  if (tab==='follow'){
+    h += s.noMore ? '<div class="feed-end">没有更多了</div>'
+      : '<div class="feed-more"><button class="btn btn-ghost btn-block" data-action="circle-load-more" ' + (s.loadingMore?'disabled':'') + '>' + (s.loadingMore?'加载中…':'加载更多') + '</button></div>';
+  }
+  return h;
+}
+function renderCircle(){
+  ensureFeedState();
+  var me = Auth.user || {};
+  var tab = view.circleTab || 'recommend';
+  var s = view.feed[tab];
+  var html = '<div class="compose-entry" data-action="open-compose">' +
+      '<img class="ce-ava" src="' + avatarUrl(me.avatar) + '" alt="">' +
+      '<div class="ce-ph">发点什么…</div>' +
+      '<button class="btn btn-primary btn-sm">发帖</button>' +
+    '</div>' +
+    '<div class="feed-tabs">' +
+      '<div class="ft ' + (tab==='recommend'?'active':'') + '" data-action="circle-tab" data-ct="recommend">推荐</div>' +
+      '<div class="ft ' + (tab==='follow'?'active':'') + '" data-action="circle-tab" data-ct="follow">关注</div>' +
+      '<div class="feed-refresh" data-action="circle-refresh" title="刷新"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></div>' +
+    '</div>' +
+    '<div class="ptr-ind"></div>' +
+    '<div id="feed-list">' + feedListHtml(s, tab) + '</div>' +
+    '<div class="fab" data-action="open-compose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div>';
+  return html;
+}
+function updateFeedList(){
+  ensureFeedState();
+  var list = document.getElementById('feed-list');
+  if (!list) return;
+  var tab = view.circleTab || 'recommend';
+  list.innerHTML = feedListHtml(view.feed[tab], tab);
+}
+function loadFeed(tab, reset){
+  ensureFeedState();
+  var s = view.feed[tab];
+  if (s.loading) return;
+  if (reset){
+    s.posts = []; s.cursor = null; s.error = null; s.loaded = false; s.noMore = false;
+    if (tab==='recommend') view.feedSeen = {};
+  }
+  s.loading = true;
+  updateFeedList();
+  postJSON('kaohe-api/social.php?action=feed', { token:Auth.token, tab:tab, cursor:s.cursor, limit:20 })
+    .then(function(res){
+      s.loading = false;
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        var posts = res.json.posts || [];
+        if (tab==='recommend'){
+          var fresh = [];
+          posts.forEach(function(p){
+            if (!view.feedSeen[p.id]){ view.feedSeen[p.id] = 1; fresh.push(p); }
+          });
+          s.posts = (reset ? fresh : s.posts.concat(fresh));
+          s.noMore = posts.length < 20;
+        } else {
+          s.empty = res.json.empty || null;
+          s.posts = (reset ? posts : s.posts.concat(posts));
+          s.cursor = res.json.nextCursor || null;
+          s.noMore = !res.json.nextCursor;
+        }
+        s.loaded = true;
+        s.error = null;
+      } else {
+        s.error = apiMsg(res);
+      }
+      updateFeedList();
+    })
+    .catch(function(){
+      s.loading = false; s.error = '网络错误，请检查连接';
+      updateFeedList();
+    });
+}
+function refreshFeed(){
+  var t = view.circleTab || 'recommend';
+  loadFeed(t, true);
+}
+function removePostCard(postId){
+  var art = document.querySelector('.post[data-id="' + postId + '"]');
+  if (art) art.remove();
+}
+
+/* ---- 互动 ---- */
+function toggleLike(postId, el){
+  var turningOn = !el.classList.contains('on');
+  el.classList.toggle('on', turningOn);
+  el.classList.toggle('liked', turningOn);
+  var ic = el.querySelector('i');
+  if (ic){ var n = parseInt(ic.textContent,10)||0; ic.textContent = turningOn ? n+1 : Math.max(0,n-1); }
+  postJSON('kaohe-api/social.php?action=' + (turningOn?'like':'unlike'), { token:Auth.token, id:postId })
+    .then(function(r){
+      if (apiFail(r)) return;
+      if (r.json && r.json.ok){
+        if (r.json.likeCount!=null && ic) ic.textContent = r.json.likeCount;
+      } else {
+        el.classList.toggle('on', !turningOn);
+        el.classList.toggle('liked', !turningOn);
+        if (ic) ic.textContent = (parseInt(ic.textContent,10)||0) + (turningOn?-1:1);
+        if (r.json && r.json.err==='notfound'){ removePostCard(postId); toast('动态已删除','warn'); }
+        else toast(apiMsg(r),'warn');
+      }
+    })
+    .catch(function(){
+      el.classList.toggle('on', !turningOn);
+      el.classList.toggle('liked', !turningOn);
+      toast('网络错误','warn');
+    });
+}
+function toggleBookmark(postId, el){
+  var turningOn = !el.classList.contains('on');
+  el.classList.toggle('on', turningOn);
+  postJSON('kaohe-api/social.php?action=' + (turningOn?'bookmark':'unbookmark'), { token:Auth.token, id:postId })
+    .then(function(r){
+      if (apiFail(r)) return;
+      if (r.json && r.json.ok){ toast(turningOn?'已收藏':'已取消收藏','good'); }
+      else {
+        el.classList.toggle('on', !turningOn);
+        if (r.json && r.json.err==='notfound') removePostCard(postId);
+        else toast(apiMsg(r),'warn');
+      }
+    })
+    .catch(function(){ el.classList.toggle('on', !turningOn); toast('网络错误','warn'); });
+}
+function toggleRepost(postId, el){
+  // MVP-5：转发=生成一条引用原帖的新帖（§4.3），本期不做"取消转发"反向操作
+  var text = prompt('说点什么（可留空直接转发）：') || '';
+  postJSON('kaohe-api/social.php?action=repost', { token:Auth.token, id:postId, text:text })
+    .then(function(r){
+      if (apiFail(r)) return;
+      if (r.json && r.json.ok){
+        el.classList.add('on');
+        var ic = el.querySelector('i');
+        if (ic) ic.textContent = r.json.repostCount;
+        toast('已转发','good');
+      } else {
+        if (r.json && r.json.err==='notfound') removePostCard(postId);
+        else toast(apiMsg(r),'warn');
+      }
+    })
+    .catch(function(){ toast('网络错误','warn'); });
+}
+function cmtItemHtml(c){
+  // CommentView = {id, author, authorNick, authorAvatar, text, mentions[], at, status}
+  var text = esc(c.text||'');
+  text = text.replace(/@([^\s@，。,.!！?？:：;；、<]+)/g, '<span class="mention">@$1</span>');
+  return '<div class="cmt-item"><b>' + esc(c.authorNick||'已注销') + '</b> ' + text +
+    '<span class="cmt-time">' + fmtRel(c.at) + '</span></div>';
+}
+function loadComments(postId){
+  var list = document.getElementById('cmt-list-' + postId);
+  if (!list) return;
+  list.innerHTML = '<div class="feed-loading" style="padding:14px">加载评论…</div>';
+  postJSON('kaohe-api/social.php?action=comments_of', { token:Auth.token, id:postId })
+    .then(function(r){
+      if (apiFail(r)) return;
+      if (r.json && r.json.ok){
+        var cs = r.json.comments || [];
+        list.innerHTML = cs.length ? cs.map(cmtItemHtml).join('')
+          : '<div class="empty" style="padding:18px"><div>还没有评论，抢个沙发</div></div>';
+      } else {
+        list.innerHTML = '<div class="empty" style="padding:14px;color:var(--danger)">评论加载失败</div>';
+      }
+    })
+    .catch(function(){ list.innerHTML = '<div class="empty" style="padding:14px;color:var(--danger)">网络错误</div>'; });
+}
+function toggleComment(postId, el){
+  ensureFeedState();
+  var box = document.querySelector('.post[data-id="' + postId + '"] .comment-box');
+  if (!box) return;
+  var opening = box.hasAttribute('hidden');
+  if (opening){
+    box.removeAttribute('hidden');
+    view.openPostId = postId;
+    if (!view._cmtLoaded) view._cmtLoaded = {};
+    if (!view._cmtLoaded[postId]){ view._cmtLoaded[postId] = true; loadComments(postId); }
+  }
+  else { box.setAttribute('hidden',''); view.openPostId = null; }
+}
+function sendComment(postId){
+  var inp = document.getElementById('cmt-inp-' + postId);
+  var text = inp ? inp.value.trim() : '';
+  if (!text){ toast('评论不能为空','warn'); return; }
+  postJSON('kaohe-api/social.php?action=comment', { token:Auth.token, id:postId, text:text })
+    .then(function(r){
+      if (apiFail(r)) return;
+      if (r.json && r.json.ok){
+        if (inp) inp.value = '';
+        var list = document.getElementById('cmt-list-' + postId);
+        if (list){
+          list.insertAdjacentHTML('beforeend',
+            '<div class="cmt-item"><b>' + esc((Auth.user||{}).nickname||'我') + '</b> ' + esc(text) + '</div>');
+        }
+        var actI = document.querySelector('.post[data-id="' + postId + '"] .pa-item[data-action="toggle-comment"] i');
+        if (actI) actI.textContent = r.json.commentCount;
+        toast('评论成功','good');
+      } else {
+        toast(apiMsg(r),'warn');
+      }
+    })
+    .catch(function(){ toast('网络错误','warn'); });
+}
+function delPost(postId){
+  if (!confirm('删除这条动态？（软删除）')) return;
+  postJSON('kaohe-api/social.php?action=del', { token:Auth.token, id:postId, kind:'post' })
+    .then(function(r){
+      if (apiFail(r)) return;
+      if (r.json && r.json.ok){ removePostCard(postId); toast('已删除','good'); }
+      else toast(apiMsg(r),'warn');
+    })
+    .catch(function(){ toast('网络错误','warn'); });
+}
+
+/* ---- 发帖面板 ---- */
+function openCompose(){
+  ensureFeedState();
+  view.compose = { text:'', media:[], share_card:null, mentions:[], replyPolicy:'all', busy:false };
+  renderComposeModal();
+}
+function renderComposeModal(){
+  var c = view.compose;
+  var mediaHtml = c.media.map(function(m,i){
+    var badge;
+    if (m.status==='pending') badge = '<span class="cm-badge pend">处理中…</span>';
+    else if (m.status==='failed') badge = '<span class="cm-badge fail">失败 ✕</span>';
+    else badge = '<span class="cm-badge ok">已就绪</span>';
+    var preview;
+    if (m.kind==='image') preview = '<img src="' + mediaUrl(m.id,'sm') + '" onerror="this.parentNode.innerHTML=\'<div class=cm-mediaplay>图</div>\'">';
+    else if (m.kind==='video') preview = '<div class="cm-mediaplay">🎬</div>';
+    else preview = '<div class="cm-mediaplay">🎵</div>';
+    return '<div class="cm-media" data-mi="' + i + '">' + preview + badge +
+      '<span style="position:absolute;top:2px;right:4px;color:#fff;background:rgba(0,0,0,.4);border-radius:50%;width:18px;height:18px;font-size:12px;line-height:18px;text-align:center;cursor:pointer" data-action="cm-remove-media" data-i="' + i + '">✕</span></div>';
+  }).join('');
+  var chipsHtml = c.mentions.map(function(u,i){
+    return '<span class="chip">@' + esc(u.nickname) + '<span class="x" data-action="cm-remove-mention" data-i="' + i + '">×</span></span>';
+  }).join('');
+  var scoreHtml = c.share_card ? '<div class="post-score">' + renderScoreCardInner(c.share_card) +
+    '<span class="ps-remove" data-action="cm-remove-score">✕</span></div>' : '';
+  openModal(
+    '<h3>发动态</h3>' +
+    '<div class="fld"><textarea id="cm-text" rows="4" maxlength="600" placeholder="说点什么…" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;outline:none;resize:vertical;font-size:15px">' + esc(c.text) + '</textarea>' +
+      '<div class="hint" id="cm-count" style="' + (c.text.length>500?'color:var(--danger);font-weight:700':'') + '">' + c.text.length + '/500</div></div>' +
+    '<div class="cm-media-grid">' + mediaHtml + '</div>' +
+    '<div class="compose-toolbar">' +
+      '<div class="ti" data-action="cm-add-media"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>媒体</div>' +
+      '<div class="ti" data-action="cm-add-score"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>成绩卡</div>' +
+      '<div class="ti" data-action="cm-at"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/></svg>@提及</div>' +
+    '</div>' +
+    (chipsHtml ? '<div class="tag-chips">' + chipsHtml + '</div>' : '') +
+    scoreHtml +
+    '<div class="fld"><label>谁可以回复</label>' +
+      '<div class="seg-tabs">' +
+        '<div class="st ' + (c.replyPolicy==='all'?'active':'') + '" data-action="cm-rp" data-rp="all">🌐 全部</div>' +
+        '<div class="st ' + (c.replyPolicy==='following'?'active':'') + '" data-action="cm-rp" data-rp="following">👥 我关注的</div>' +
+        '<div class="st ' + (c.replyPolicy==='mentioned'?'active':'') + '" data-action="cm-rp" data-rp="mentioned">📣 仅提及</div>' +
+      '</div></div>' +
+    '<div class="modal-ft">' +
+      '<button class="btn btn-ghost" data-action="close-modal">取消</button>' +
+      '<button class="btn btn-primary" data-action="cm-submit" ' + (c.busy?'disabled':'') + '>' + (c.busy?'发布中…':'发帖') + '</button>' +
+    '</div>'
+  );
+  var ta = document.getElementById('cm-text');
+  if (ta){
+    ta.addEventListener('input', function(){
+      view.compose.text = ta.value;
+      var cnt = document.getElementById('cm-count');
+      if (cnt){
+        cnt.textContent = ta.value.length + '/500';
+        cnt.style.color = ta.value.length>500 ? 'var(--danger)' : '';
+        cnt.style.fontWeight = ta.value.length>500 ? '700' : '';
+      }
+    });
+  }
+}
+function cmAddMedia(){
+  var fi = document.createElement('input');
+  fi.type = 'file';
+  fi.multiple = true;
+  fi.accept = 'image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,audio/mpeg,audio/mp4,audio/x-m4a,audio/wav';
+  fi.onchange = function(e){
+    var files = Array.prototype.slice.call(e.target.files||[]);
+    files.forEach(function(f){ uploadMediaFile(f); });
+  };
+  fi.click();
+}
+function uploadMediaFile(file){
+  var c = view.compose;
+  if (c.media.length >= 4){ toast('最多 4 个媒体','warn'); return; }
+  var kind = null;
+  if (/^image\//.test(file.type)) kind = 'image';
+  else if (/^video\//.test(file.type)) kind = 'video';
+  else if (/^audio\//.test(file.type)) kind = 'audio';
+  if (!kind){ toast('不支持的文件类型：' + (file.type||'未知'),'warn'); return; }
+  var maxB = kind==='image' ? 10*1024*1024 : (kind==='audio' ? 50*1024*1024 : 200*1024*1024);
+  if (file.size > maxB){
+    toast(kind==='image' ? '图片不能超过 10MB' : (kind==='audio' ? '音频不能超过 50MB' : '视频不能超过 200MB'),'warn');
+    return;
+  }
+  var fd = new FormData();
+  fd.append('token', Auth.token);
+  fd.append('file', file);
+  toast('上传中…','good');
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', 'kaohe-api/media.php?action=upload');
+  xhr.onload = function(){
+    var j;
+    try { j = JSON.parse(xhr.responseText); } catch(e){ toast('上传失败','warn'); return; }
+    if (j && j.ok && j.media){
+      view.compose.media.push(j.media);
+      toast('已上传，处理中','good');
+      renderComposeModal();
+    } else {
+      toast((j && j.msg) || '上传失败','warn');
+    }
+  };
+  xhr.onerror = function(){ toast('上传中断，请重试','warn'); };
+  xhr.send(fd);
+}
+function cmAtPicker(){
+  openModal(
+    '<h3>提及谁？</h3><div class="sub">搜索昵称，点选后自动追加到下方</div>' +
+    '<div class="fld"><input type="text" id="cm-at-q" placeholder="输入昵称关键词…" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;outline:none"></div>' +
+    '<div id="cm-at-results" class="at-results"></div>' +
+    '<div class="modal-ft"><button class="btn btn-ghost" data-action="close-modal">完成</button></div>'
+  );
+  var q = document.getElementById('cm-at-q');
+  var res = document.getElementById('cm-at-results');
+  function search(){
+    var kw = q.value.trim();
+    if (!kw){ res.innerHTML = '<div class="empty" style="padding:20px;font-size:13px">输入关键词搜索</div>'; return; }
+    postJSON('kaohe-api/social.php?action=search_users', { token:Auth.token, q:kw })
+      .then(function(r){
+        if (apiFail(r)) return;
+        if (r.json && r.json.ok){
+          var users = r.json.users || [];
+          res.innerHTML = users.map(function(u){
+            return '<div class="at-row" data-action="cm-pick-user" data-email="' + esc(u.email) + '" data-nick="' + esc(u.nickname) + '">' +
+              '<img class="at-ava" src="' + avatarUrl(u.avatar) + '"><span>' + esc(u.nickname) + '</span></div>';
+          }).join('') || '<div class="empty" style="padding:20px">未找到匹配用户</div>';
+        }
+      });
+  }
+  q.addEventListener('input', search);
+  q.focus();
+}
+function cmPickScore(){
+  postJSON('kaohe-api/social.php?action=score_cards', { token:Auth.token })
+    .then(function(r){
+      if (apiFail(r)) return;
+      if (r.json && r.json.ok){
+        view._scoreCards = r.json.cards || [];
+        openModal(
+          '<h3>选择一条打卡成绩</h3><div class="sub">只分享你选的这条，不会暴露完整账本</div>' +
+          view._scoreCards.map(function(c,i){
+            return '<div class="score-pick" data-action="cm-pick-score" data-i="' + i + '">' +
+              '<div class="sp-name">🏅 ' + esc(c.habitName) + '</div>' +
+              '<div class="sp-row">' + esc(c.cycleStart) + ' ~ ' + esc(c.cycleEnd) + ' · 达标 ' + c.weekCheckins + '/' + c.weekTotal + '</div>' +
+              '<div class="sp-rw">奖励 ' + c.rewardMinutes + ' 分钟</div></div>';
+          }).join('') || '<div class="empty"><div class="t">暂无成绩记录</div><div>完成一个考核周期后再来分享吧</div></div>' +
+          '<div class="modal-ft"><button class="btn btn-ghost" data-action="close-modal">取消</button></div>'
+        );
+      } else toast(apiMsg(r),'warn');
+    })
+    .catch(function(){ toast('网络错误','warn'); });
+}
+function cmSubmit(){
+  var c = view.compose;
+  if (c.busy) return;
+  var hasText = c.text.trim().length > 0;
+  var hasMedia = c.media.length > 0;
+  var hasScore = !!c.share_card;
+  if (!hasText && !hasMedia && !hasScore){ toast('写点什么，或添加媒体/成绩卡','warn'); return; }
+  if (c.text.length > 500){ toast('内容须 ≤500 字','warn'); return; }
+  c.busy = true; renderComposeModal();
+  var payload = { token:Auth.token, text:c.text.trim(), reply_policy:c.replyPolicy, client_req_id:'c' + Date.now() + Math.random().toString(36).slice(2,8) };
+  if (c.media.length) payload.media = c.media.map(function(m){ return m.id; });
+  if (c.share_card) payload.score = c.share_card;
+  postJSON('kaohe-api/social.php?action=post', payload)
+    .then(function(r){
+      c.busy = false;
+      if (apiFail(r)){ renderComposeModal(); return; }
+      if (r.json && r.json.ok){
+        closeModal();
+        toast('发布成功','good');
+        view.feed.recommend.posts.unshift(r.json.post);
+        view.feed.recommend.loaded = true;
+        view.feedSeen[r.json.post.id] = 1;
+        view.circleTab = 'recommend';
+        render();
+      } else {
+        toast(apiMsg(r),'warn');
+        renderComposeModal();
+      }
+    })
+    .catch(function(){ c.busy = false; toast('网络错误，请重试','warn'); renderComposeModal(); });
+}
+
+/* ---- 下拉刷新（移动端） ---- */
+(function(){
+  var ptrStartY = 0, tracking = false;
+  document.addEventListener('touchstart', function(e){
+    if (view.tab !== 'circle') return;
+    if (window.scrollY > 0) return;
+    var t = e.touches[0]; ptrStartY = t.clientY; tracking = true;
+  }, {passive:true});
+  document.addEventListener('touchmove', function(e){
+    if (!tracking) return;
+    var dy = e.touches[0].clientY - ptrStartY;
+    var ind = document.querySelector('.ptr-ind');
+    if (ind){
+      if (dy > 60){ ind.textContent = '释放刷新…'; ind.classList.add('on'); }
+      else if (dy > 10){ ind.textContent = '下拉刷新'; ind.classList.add('on'); }
+      else ind.classList.remove('on');
+    }
+  }, {passive:true});
+  document.addEventListener('touchend', function(){
+    if (!tracking) return;
+    tracking = false;
+    var ind = document.querySelector('.ptr-ind');
+    if (ind && ind.classList.contains('on')){
+      ind.classList.remove('on');
+      refreshFeed();
+    }
+  }, {passive:true});
+})();
+
 function ruleOverflow(el){
   var c = el.cloneNode(true);
   c.style.display = 'block';
@@ -2210,6 +2810,51 @@ function handleAction(el, e){
     case 'adm-set-role': adminSetRole(el.getAttribute('data-email'), el.getAttribute('data-role')); break;
     case 'adm-save-invite': adminSaveInvite(); break;
     case 'adm-save-config': adminSaveConfig(); break;
+    /* ---- MVP-5 动态 ---- */
+    case 'open-compose': openCompose(); break;
+    case 'circle-tab': view.circleTab = el.getAttribute('data-ct') || 'recommend'; render(); break;
+    case 'circle-refresh': refreshFeed(); break;
+    case 'circle-reload': refreshFeed(); break;
+    case 'circle-load-more': loadFeed('follow', false); break;
+    case 'toggle-like': toggleLike(el.getAttribute('data-id'), el); break;
+    case 'toggle-bookmark': toggleBookmark(el.getAttribute('data-id'), el); break;
+    case 'toggle-repost': toggleRepost(el.getAttribute('data-id'), el); break;
+    case 'toggle-comment': toggleComment(el.getAttribute('data-id'), el); break;
+    case 'send-comment': sendComment(el.getAttribute('data-id')); break;
+    case 'del-post': delPost(el.getAttribute('data-id')); break;
+    case 'cm-add-media': cmAddMedia(); break;
+    case 'cm-add-score': cmPickScore(); break;
+    case 'cm-at': cmAtPicker(); break;
+    case 'cm-rp': view.compose.replyPolicy = el.getAttribute('data-rp') || 'all'; renderComposeModal(); break;
+    case 'cm-submit': cmSubmit(); break;
+    case 'cm-remove-media': {
+      var mi = parseInt(el.getAttribute('data-i'),10);
+      if (!isNaN(mi) && view.compose.media[mi]){ view.compose.media.splice(mi,1); renderComposeModal(); }
+      break;
+    }
+    case 'cm-remove-mention': {
+      var ti = parseInt(el.getAttribute('data-i'),10);
+      if (!isNaN(ti) && view.compose.mentions[ti]){ view.compose.mentions.splice(ti,1); renderComposeModal(); }
+      break;
+    }
+    case 'cm-remove-score': view.compose.share_card = null; renderComposeModal(); break;
+    case 'cm-pick-user': {
+      var u = { email: el.getAttribute('data-email'), nickname: el.getAttribute('data-nick') };
+      if (u.email && !view.compose.mentions.some(function(x){return x.email===u.email;})){
+        view.compose.mentions.push(u);
+        toast('已 @' + u.nickname, 'good');
+      }
+      break;
+    }
+    case 'cm-pick-score': {
+      var si = parseInt(el.getAttribute('data-i'),10);
+      if (!isNaN(si) && view._scoreCards && view._scoreCards[si]){
+        view.compose.share_card = view._scoreCards[si];
+        closeModal();
+        renderComposeModal();
+      }
+      break;
+    }
     case 'close-modal':
       if (!canCloseModal()) break;  // 弹窗刚打开 350ms 内的关闭点击忽略（防连点/误触）
       closeModal(); break;
