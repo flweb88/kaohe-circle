@@ -41,9 +41,12 @@ SSH_OPTS="-o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=8 -o Se
 CONF="$HOME/.config/kaohe-worker.conf"
 [ -f "$CONF" ] && . "$CONF"
 
-# ffmpeg 自动探测（脚本本身不要求安装；缺省时仅影响 >50MB 视频）
+# ffmpeg 自动探测（launchd/非交互 shell 的 PATH 不含 ~/.local/bin，command -v 探测会落空 → 显式 fallback 到固定安装路径；v3.5.4 补丁）
 if [ -z "$FFMPEG_BIN" ]; then
   FFMPEG_BIN="$(command -v ffmpeg 2>/dev/null || true)"
+fi
+if [ -z "$FFMPEG_BIN" ] && [ -x "$HOME/.local/bin/ffmpeg" ]; then
+  FFMPEG_BIN="$HOME/.local/bin/ffmpeg"
 fi
 
 # ---------------- 目录与日志 ----------------
