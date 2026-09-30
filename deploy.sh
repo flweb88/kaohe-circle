@@ -24,9 +24,9 @@ for f in $PHP_FILES; do
 done
 
 echo "[2.5/5] 创建 uploads 媒体目录并推送 .htaccess（禁脚本执行）..."
-$SSH "$NAS" "mkdir -p $NAS_WEB/kaohe-data/uploads/_pending $NAS_WEB/kaohe-data/uploads/done"
+$SSH "$NAS" "mkdir -p $NAS_WEB/kaohe-data/uploads/_pending $NAS_WEB/kaohe-data/uploads/done 2>/dev/null || true"
 $SSH "$NAS" "cat > $NAS_WEB/kaohe-data/uploads/.htaccess" < "$SRC_DIR/kaohe-data/uploads/.htaccess"
-$SSH "$NAS" "chmod -R 755 $NAS_WEB/kaohe-data/uploads"
+$SSH "$NAS" "chmod 644 $NAS_WEB/kaohe-data/uploads/.htaccess 2>/dev/null || true"
 
 echo "[3/5] 推送 12 生肖头像 ..."
 $SSH "$NAS" "mkdir -p $NAS_WEB/kaohe-api/avatars/zodiac"
