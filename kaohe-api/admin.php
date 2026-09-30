@@ -1,6 +1,6 @@
 <?php
 /* 考核小管家 v2 - 管理员
- * actions: list / reset_password / ban / invite / config
+ * actions: list / reset_password / ban / invite / config / role
  */
 require_once __DIR__ . '/common.php';
 
@@ -45,6 +45,24 @@ if ($action === 'ban') {
         json_out(['ok' => false, 'err' => 'notfound', 'msg' => '目标用户不存在']);
     }
     $users['users'][$target]['banned'] = $banned;
+    save_users($users);
+    json_out(['ok' => true]);
+}
+
+if ($action === 'role') {
+    $target = strtolower(trim((string)($in['email'] ?? '')));
+    $newRole = trim((string)($in['role'] ?? ''));
+    if (!in_array($newRole, ['admin', 'user'], true)) {
+        json_out(['ok' => false, 'err' => 'role', 'msg' => '角色只能是 admin 或 user']);
+    }
+    if ($target === strtolower($admin['email'])) {
+        json_out(['ok' => false, 'err' => 'self', 'msg' => '不能修改自己的角色']);
+    }
+    $users = load_users();
+    if (!isset($users['users'][$target])) {
+        json_out(['ok' => false, 'err' => 'notfound', 'msg' => '目标用户不存在']);
+    }
+    $users['users'][$target]['role'] = $newRole;
     save_users($users);
     json_out(['ok' => true]);
 }

@@ -24,7 +24,7 @@ body{
 }
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
 input,select,textarea{font-family:inherit;font-size:16px;color:var(--text)}
-#app{max-width:880px;margin:0 auto;padding:0 16px 92px}
+#app{max-width:880px;margin:0 auto;padding:12px 16px 92px}
 /* ===== 顶栏 ===== */
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 2px 14px}
 .brand{display:flex;align-items:center;gap:12px}
@@ -205,7 +205,7 @@ main{margin-top:18px}
 .auth-brand p{font-size:12.5px;color:var(--muted);margin-top:3px}
 .auth-tabs{display:flex;background:#F1F2F6;border-radius:12px;padding:4px;margin-bottom:16px;gap:4px}
 .auth-tab{flex:1;padding:9px 0;font-size:13.5px;font-weight:600;color:var(--muted);border-radius:9px;text-align:center;transition:all .15s}
-.auth-tab.active{background:var(--primary);color:#fff;box-shadow:0 2px 6px rgba(255,122,47,.3)}
+.auth-tab.active{background:var(--primary);color:#fff;box-shadow:0 2px 6px rgba(29,124,242,.3)}
 .auth-err{background:var(--danger-soft);color:var(--danger);font-size:13px;border-radius:10px;padding:9px 12px;margin-bottom:12px;line-height:1.5}
 .auth-ok{background:var(--success-soft);color:var(--success);font-size:13px;border-radius:10px;padding:9px 12px;margin-bottom:12px;line-height:1.5}
 .captcha-row{display:flex;gap:8px;align-items:center}
@@ -340,6 +340,21 @@ footer .fb-link:hover{text-decoration:underline}
 .seg-tabs{display:flex;background:#F1F2F6;border-radius:11px;padding:4px;gap:4px;margin-bottom:12px}
 .seg-tabs .st{flex:1;text-align:center;padding:8px 0;font-size:13px;font-weight:600;color:var(--muted);border-radius:8px;cursor:pointer}
 .seg-tabs .st.active{background:#fff;color:var(--primary);box-shadow:0 1px 4px rgba(0,0,0,.06)}
+/* 我的页：账号设置菜单行 */
+.me-menu{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.me-menu .mm-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.me-menu .mm-row:last-child{border-bottom:none}
+.me-menu .mm-row:hover{background:#F8F9FC}
+.me-menu .mm-ico{width:34px;height:34px;border-radius:10px;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;flex:none}
+.me-menu .mm-ico svg{width:18px;height:18px}
+.me-menu .mm-body{flex:1;min-width:0}
+.me-menu .mm-t{font-size:14.5px;font-weight:600}
+.me-menu .mm-s{font-size:12px;color:var(--muted);margin-top:1px}
+.me-menu .mm-arrow{color:var(--muted);flex:none}
+.me-menu .mm-arrow svg{width:16px;height:16px}
+.me-menu .mm-row.danger .mm-t{color:var(--danger)}
+.me-menu .mm-row.danger .mm-ico{background:var(--danger-soft);color:var(--danger)}
+.me-menu .mm-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;background:#F1F2F6;flex:none}
 .friend-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}
 .friend-row img{width:40px;height:40px;border-radius:50%;object-fit:cover;background:#F1F2F6}
 .friend-row .fr-info{flex:1;min-width:0}
@@ -437,30 +452,6 @@ footer .fb-link:hover{text-decoration:underline}
 <div id="sync-hint" style="display:none;background:#FFE9E9;color:#B3261E;border:1px solid #F5B5B0;border-radius:12px;padding:10px 14px;font-size:13px;line-height:1.6;margin:12px 16px 0">当前是本地访问，数据<b>不会云端同步</b>。请用 <b>http://flweb.synology.me:8081/kaohe.html</b> 打开，多设备数据才会统一。</div>
 <div id="auth-root" style="display:none"></div>
 <div id="app">
-  <header class="topbar">
-    <div class="brand">
-      <span class="logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg></span>
-      <div>
-        <h1>考核小管家</h1>
-        <p class="sub">习惯考核 · 娱乐时间奖励</p>
-      </div>
-    </div>
-    <div class="topbar-right">
-      <div class="user-chip" id="user-chip" style="display:none">
-        <img class="u-avatar" id="uc-avatar" alt="">
-        <span class="u-nick" id="uc-nick"></span>
-        <button class="u-btn" data-action="open-profile" title="个人中心">个人中心</button>
-        <button class="u-btn" data-action="open-admin" id="uc-admin" style="display:none" title="管理员面板">管理</button>
-        <button class="u-btn u-logout" data-action="logout" title="退出登录">退出</button>
-      </div>
-      <button class="balance-chip" data-action="goto-account" title="查看娱乐账户">
-        <span class="dot"></span>
-        <span class="lbl">娱乐时间</span>
-        <span class="val" id="chip-balance">0 分钟</span>
-        <span class="yuan" id="chip-yuan">≈ ¥0</span>
-      </button>
-    </div>
-  </header>
   <nav class="tabs" id="tabs">
     <button class="tab active" data-tab="today">今日打卡</button>
     <button class="tab" data-tab="habits">考核项</button>
@@ -468,7 +459,7 @@ footer .fb-link:hover{text-decoration:underline}
     <button class="tab" data-tab="history">历史记录</button>
   </nav>
   <main id="main"></main>
-  <footer>考核小管家 v3.2.0 · 考核圈社交版第一页<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
+  <footer>考核小管家 v3.3.0 · 考核圈社交版<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
 </div>
 <nav class="tabbar" id="tabbar">
   <button class="tb" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>首页</button>
@@ -593,7 +584,7 @@ var ICONS = {
   heart:{ n:'孝心', svg:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/>' },
   star:{ n:'优秀', svg:'<path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/>' }
 };
-var COLORS = ['#FF7A2F','#16A34A','#2563EB','#9333EA','#DB2777','#0EA5E9','#D97706','#64748B'];
+var COLORS = ['#2563EB','#16A34A','#1D7CF2','#9333EA','#DB2777','#0EA5E9','#D97706','#64748B'];
 function iconSvg(key, cls){
   var it = ICONS[key] || ICONS.star;
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '+(cls||'')+'>'+it.svg+'</svg>';
@@ -829,7 +820,7 @@ function renderAuth(){
   }
   document.getElementById('auth-root').innerHTML =
     '<div class="rk-wrap">' + brandHtml + body +
-      '<div class="rk-ver">考核圈 · 社交版第一页 v3.2.0</div>' +
+      '<div class="rk-ver">考核圈 · 社交版第一页 v3.3.0</div>' +
     '</div>';
   if (authMode === 'register'){
     refreshCaptcha();
@@ -1041,11 +1032,31 @@ function renderUserChip(){
 }
 /* ==== 个人中心 / 管理员 / 反馈弹窗 ==== */
 var pendingAvatarFile = null;
-function openProfileModal(){
+/* 修改昵称弹窗 */
+function openNicknameModal(){
   var u = Auth.user || {};
   openModal(
-    '<h3>个人中心</h3><p class="sub">' + esc(u.email || '') + '</p>' +
+    '<h3>修改昵称</h3><p class="sub">' + esc(u.email || '') + '（邮箱不可改）</p>' +
     '<div class="fld"><label>昵称</label><input type="text" id="pf-nick" maxlength="20" value="' + esc(u.nickname || '') + '"><div class="hint">留空则显示「小笨猪」</div></div>' +
+    '<div class="modal-ft"><button class="btn btn-ghost" data-action="close-modal">取消</button>' +
+      '<button class="btn btn-primary" data-action="pf-save-nick">保存昵称</button></div>'
+  );
+}
+/* 修改密码弹窗（服务端强制验原密码） */
+function openPasswordModal(){
+  openModal(
+    '<h3>修改密码</h3><p class="sub">需验证原密码后方可设置新密码</p>' +
+    '<div class="fld"><label>原密码</label><input type="password" id="pf-oldpwd" autocomplete="current-password"></div>' +
+    '<div class="fld"><label>新密码</label><input type="password" id="pf-newpwd" autocomplete="new-password"></div>' +
+    '<div class="modal-ft"><button class="btn btn-ghost" data-action="close-modal">取消</button>' +
+      '<button class="btn btn-primary" data-action="pf-chpwd">修改密码</button></div>'
+  );
+}
+/* 头像设置弹窗：12 生肖宫格 + 自定义上传 */
+function openAvatarModal(){
+  var u = Auth.user || {};
+  openModal(
+    '<h3>头像设置</h3><p class="sub">12 生肖宫格点击即保存；也可上传自定义头像</p>' +
     '<div class="fld"><label>生肖头像（点击即保存）</label><div class="zodiac-grid">' + (function(){
       var cur = (u.avatar && u.avatar.indexOf('zodiac:') === 0) ? u.avatar.slice(7) : '';
       return ZODIAC.map(function(z){
@@ -1057,13 +1068,7 @@ function openProfileModal(){
       '<img id="pf-preview" style="display:none;width:56px;height:56px;border-radius:50%;object-fit:cover;margin-bottom:8px;border:2px solid var(--border)">' +
       '<input type="file" id="pf-file" accept="image/jpeg,image/png,image/webp">' +
       '<div class="modal-ft" style="margin-top:10px"><button type="button" class="btn btn-primary" data-action="pf-upload-avatar">上传头像</button></div></div>' +
-    '<div class="modal-ft" style="margin-top:6px"><button class="btn btn-ghost" data-action="close-modal">关闭</button>' +
-      '<button class="btn btn-primary" data-action="pf-save-nick">保存昵称</button></div>' +
-    '<hr style="border:none;border-top:1px dashed var(--border);margin:16px 0">' +
-    '<div class="fld"><label>原密码</label><input type="password" id="pf-oldpwd" autocomplete="current-password"></div>' +
-    '<div class="fld"><label>新密码</label><input type="password" id="pf-newpwd" autocomplete="new-password"></div>' +
-    '<div class="modal-ft"><button class="btn btn-ghost" data-action="close-modal">关闭</button>' +
-      '<button class="btn btn-primary" data-action="pf-chpwd">修改密码</button></div>'
+    '<div class="modal-ft"><button class="btn btn-ghost" data-action="close-modal">关闭</button></div>'
   );
 }
 function saveNick(){
@@ -1077,6 +1082,7 @@ function saveNick(){
           try{ localStorage.setItem('kaohe_user', JSON.stringify(Auth.user)); }catch(e){}
         }
         renderUserChip();
+        closeModal(); render();
         toast('昵称已更新', 'good');
       } else toast(apiMsg(res), 'warn');
     }).catch(function(){ toast('网络错误，保存失败', 'warn'); });
@@ -1090,7 +1096,7 @@ function pickZodiacAvatar(z){
           Auth.user.avatar = 'zodiac:' + z;
           try{ localStorage.setItem('kaohe_user', JSON.stringify(Auth.user)); }catch(e){}
         }
-        renderUserChip();
+        renderUserChip(); render();
         var grid = document.querySelector('#modal-root .zodiac-grid');
         if (grid){
           var items = grid.querySelectorAll('.zg');
@@ -1115,6 +1121,7 @@ function uploadAvatar(){
         }
         renderUserChip();
         pendingAvatarFile = null;
+        closeModal(); render();
         toast('头像已更新', 'good');
       } else toast(j && j.msg ? j.msg : '上传失败，请重试', 'warn');
     }).catch(function(){ toast('上传失败，请检查网络或图片大小', 'warn'); });
@@ -1159,11 +1166,18 @@ function renderAdminUsers(list){
     var banBtn = isMe ? '' : (u.banned
       ? '<button type="button" class="mgmt-btn btn-ghost abt" data-action="adm-ban" data-email="' + esc(u.email) + '" data-banned="false">解封</button>'
       : '<button type="button" class="mgmt-btn btn-ghost abt" data-action="adm-ban" data-email="' + esc(u.email) + '" data-banned="true">封禁</button>');
+    /* 设为/取消管理员：本人行不显示（防自降级，后端也拒绝） */
+    var roleBtn = '';
+    if (!isMe){
+      roleBtn = u.role === 'admin'
+        ? '<button type="button" class="mgmt-btn btn-ghost abt" style="color:var(--muted)" data-action="adm-set-role" data-email="' + esc(u.email) + '" data-role="user">取消管理员</button>'
+        : '<button type="button" class="mgmt-btn btn-ghost abt" style="color:var(--primary)" data-action="adm-set-role" data-email="' + esc(u.email) + '" data-role="admin">设为管理员</button>';
+    }
     return '<div class="adm-user">' + avTag +
       '<div class="ainfo"><div class="anm">' + esc(u.nickname || '小笨猪') + ' ' + badge + banBadge + '</div>' +
       '<div class="aem">' + esc(u.email) + '</div></div>' +
       '<button type="button" class="mgmt-btn btn-ghost abt" data-action="adm-reset-pwd" data-email="' + esc(u.email) + '">重置密码</button>' +
-      banBtn + '</div>';
+      roleBtn + banBtn + '</div>';
   }).join('');
   var box = document.getElementById('admin-body');
   if (box) box.innerHTML =
@@ -1208,6 +1222,16 @@ function adminBan(email, banned){
     .then(function(res){
       if (apiFail(res)) return;
       if (res.json && res.json.ok){ toast(banned ? '已封禁该账户' : '已解封该账户', 'good'); openAdminModal(); }
+      else toast(apiMsg(res), 'warn');
+    }).catch(function(){ toast('网络错误，请重试', 'warn'); });
+}
+function adminSetRole(email, role){
+  var verb = (role === 'admin') ? '设为管理员' : '取消管理员';
+  if (!confirm('确认将 ' + email + ' ' + verb + '？')) return;
+  postJSON('kaohe-api/admin.php?action=role', { token:Auth.token, email:email, role:role })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){ toast(verb + '成功', 'good'); openAdminModal(); }
       else toast(apiMsg(res), 'warn');
     }).catch(function(){ toast('网络错误，请重试', 'warn'); });
 }
@@ -1275,7 +1299,7 @@ function normalize(d){
     }
     if (type==='time' && trigVal<0) trigVal = 0;
     if (type==='time' && stepV<0) stepV = 0;
-    return { id:h.id||uid(), name:h.name||'未命名', type:type, icon:h.icon||'star', color:h.color||COLORS[0], cycleDays:h.cycleDays||7, anchorDate:h.anchorDate||mondayOf(), requiredCount:h.requiredCount||(h.cycleDays||7), minMinutes:h.minMinutes||0, goalMinutes:h.goalMinutes||0, baseRewardMin:h.baseRewardMin||0, boostEnabled:!!h.boostEnabled, boostThresholdMin:h.boostThresholdMin||60, boostRewardMin:h.boostRewardMin||0, penaltyMin:h.penaltyMin||0, penaltyTimes:h.penaltyTimes||0, penaltyStep:h.penaltyStep!==false, rewardStep:h.rewardStep||0, triggerDays:trigDays, triggerValue:trigVal, stepValue:stepV, stepMode:'mean', stepDelta:0, remark:h.remark||'', enabled:h.enabled!==false, createdAt:h.createdAt };
+    return { id:h.id||uid(), name:h.name||'未命名', type:type, icon:h.icon||'star', color:h.color||COLORS[0], cycleDays:h.cycleDays||7, anchorDate:h.anchorDate||mondayOf(), requiredCount:h.requiredCount||(h.cycleDays||7), minMinutes:h.minMinutes||0, goalMinutes:h.goalMinutes||0, baseRewardMin:h.baseRewardMin||0, boostEnabled:!!h.boostEnabled, boostThresholdMin:h.boostThresholdMin||60, boostRewardMin:h.boostRewardMin||0, penaltyMin:h.penaltyMin||0, penaltyTimes:h.penaltyTimes||0, penaltyStep:h.penaltyStep!==false, rewardStep:h.rewardStep||0, triggerDays:trigDays, triggerValue:trigVal, stepValue:stepV, stepMode:'mean', stepDelta:0, remark:h.remark||'', enabled:h.enabled!==false, deleted:!!h.deleted, createdAt:h.createdAt };
   });
   d.checkins = d.checkins||[];
   d.settlements = d.settlements||[];
@@ -1309,7 +1333,7 @@ function defaultData(){
   return normalize({
     habits:[
       { id:uid(), name:'主动下楼扔垃圾', icon:'trash', color:'#16A34A', cycleDays:7, anchorDate:mon, requiredCount:7, minMinutes:0, baseRewardMin:15, boostEnabled:false, boostThresholdMin:60, boostRewardMin:30, penaltyMin:0, enabled:true, createdAt:HabitEngine.today() },
-      { id:uid(), name:'阅读', icon:'book', color:'#FF7A2F', cycleDays:7, anchorDate:mon, requiredCount:7, minMinutes:30, baseRewardMin:15, boostEnabled:true, boostThresholdMin:60, boostRewardMin:30, penaltyMin:0, enabled:true, createdAt:HabitEngine.today() }
+      { id:uid(), name:'阅读', icon:'book', color:'#2563EB', cycleDays:7, anchorDate:mon, requiredCount:7, minMinutes:30, baseRewardMin:15, boostEnabled:true, boostThresholdMin:60, boostRewardMin:30, penaltyMin:0, enabled:true, createdAt:HabitEngine.today() }
     ],
     checkins:[], settlements:[], redemptions:[], usages:[],
     account:{ balanceMin:0, totalEarnedMin:0, totalRedeemedMin:0, totalRedeemedYuan:0, totalUsedMin:0 },
@@ -1391,7 +1415,7 @@ function autoSettle(){
   var t = HabitEngine.today();
   var notes = [];
   state.habits.forEach(function(h){
-    if (!h.enabled) return;
+    if (!h.enabled || h.deleted) return;
     var prev = HabitEngine.prevCycleOf(h, t);
     if (prev.end >= t) return;
     if (prev.end < h.createdAt) return;
@@ -1429,7 +1453,7 @@ function removeCheckin(habitId, date){
 /* ==== 视图：今日打卡 ==== */
 function renderToday(){
   var t = HabitEngine.today();
-  var hs = state.habits.filter(function(h){ return h.enabled; });
+  var hs = state.habits.filter(function(h){ return h.enabled && !h.deleted; });
   var rwDone = 0, rwPend = 0, pnCount = 0;
   var rewardCards = [], penCards = [];
   hs.forEach(function(h){
@@ -1502,8 +1526,22 @@ function renderToday(){
 /* ==== 视图：考核项 ==== */
 function renderHabits(){
   var t = HabitEngine.today();
-  var rw = [], pn = [], paused = [];
+  var rw = [], pn = [], paused = [], del = [];
   state.habits.forEach(function(h){
+    if (h.deleted){
+      /* 已删除：置灰简化卡片，仅显示名称/类型/删除标记，无操作按钮 */
+      var delCard = '<div class="habit-card" style="opacity:.55;filter:grayscale(.6)">'+
+        '<div class="habit-top">'+
+          '<div class="h-ico" style="background:#EEF0F4;color:#9AA0AE">'+iconSvg(h.icon)+'</div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div class="h-name" style="color:var(--muted)">'+esc(h.name)+' <span class="tag tag-none">已删除</span></div>'+
+            '<div class="h-rule" style="-webkit-line-clamp:1">'+escHabitShort(h)+'</div>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+      del.push(delCard);
+      return;
+    }
     var cyc = HabitEngine.currentCycle(h, t);
     var st = HabitEngine.cycleStats(h, state.checkins, cyc);
     var pct = Math.min(100, Math.round(st.count/targetOf(h)*100));
@@ -1529,12 +1567,14 @@ function renderHabits(){
     else if (h.triggerValue < 0) pn.push(cardHtml);
     else rw.push(cardHtml);
   });
+  var activeCount = state.habits.length - del.length;
   var cards = '';
   if (rw.length) cards += '<div class="grp-title grp-rw">奖励打卡 <span class="cnt">'+rw.length+' 项</span></div>' + rw.join('');
   if (pn.length) cards += '<div class="grp-title grp-pn">惩罚打卡 <span class="cnt">'+pn.length+' 项</span></div>' + pn.join('');
   if (paused.length) cards += '<div class="grp-title"><span class="cnt" style="margin-left:0">已暂停 '+paused.length+' 项</span></div>' + paused.join('');
+  if (del.length) cards += '<div class="grp-title"><span class="cnt" style="margin-left:0">已删除 '+del.length+' 项（移入已删除，历史记录保留）</span></div>' + del.join('');
   var add = '<button class="btn btn-primary btn-block" data-action="add-habit" style="padding:13px">+ 新增考核项</button>';
-  return '<div class="view-title">考核项管理 <span class="tip">'+(state.habits.length)+' 项</span></div>'+
+  return '<div class="view-title">考核项管理 <span class="tip">'+activeCount+' 项</span></div>'+
     '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:13px 16px;margin-bottom:12px;box-shadow:var(--shadow)"><div class="r-line"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><span style="font-size:12.5px;color:var(--muted)">每到一个周期结束，系统自动结算：达成条件发奖励，未达成无奖励（默认不扣已积累的娱乐时间）。奖励与规则均可自定义。</span></div></div>'+
     cards + '<div style="margin-top:14px">'+add+'</div>';
 }
@@ -1605,7 +1645,7 @@ function renderHistory(){
       var item = '<div class="rec-item">'+
         '<div class="info"><div class="nm">'+esc(nm)+' '+tag+'</div><div class="dt">'+fmtDateCN(s.cycleStart)+' ~ '+fmtDateCN(s.cycleEnd)+' · 达标 '+s.count+'/'+s.required+'</div></div>'+
         val+'</div>';
-      if (!h) delS.push(item);
+      if (!h || h.deleted) delS.push(item);
       else if (h.triggerValue < 0) pnS.push(item);
       else rwS.push(item);
     });
@@ -1629,7 +1669,7 @@ function renderHistory(){
         else if (h && h.type==='check') mins = '<span class="tag tag-full">完成</span>';
         else mins = '<span class="tag" style="background:#F1F2F6;color:var(--muted)">无时长</span>';
         var item = '<div class="rec-item"><div class="info"><div class="nm">'+esc(nm)+'</div></div>'+mins+'</div>';
-        if (!h) delItems.push(item);
+        if (!h || h.deleted) delItems.push(item);
         else if (h.triggerValue < 0) pnItems.push(item);
         else rwItems.push(item);
       });
@@ -1658,6 +1698,55 @@ function renderHistory(){
     content = uses;
   }
   return '<div class="view-title">历史记录</div>'+tabHtml+content;
+}
+
+/* ==== 视图：我的（个人中心） ==== */
+function renderMe(){
+  var u = Auth.user || {};
+  var avUrl = avatarUrl(u.avatar);
+  var avHtml = avUrl ? '<img src="' + avUrl + '" alt="">' : '<div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700">?</div>';
+  var card = '<div class="me-card">' + avHtml +
+    '<div style="flex:1;min-width:0"><div class="mn">' + esc(u.nickname || '小笨猪') + '</div>' +
+    '<div class="ma">' + esc(u.email || '') + '</div></div></div>';
+  var tabs = '<div class="seg-tabs">' +
+    '<button class="st ' + (view.meTab==='habits'?'active':'') + '" data-action="me-tab" data-mt="habits">考核项管理</button>' +
+    '<button class="st ' + (view.meTab==='history'?'active':'') + '" data-action="me-tab" data-mt="history">历史记录</button>' +
+    '<button class="st ' + (view.meTab==='account'?'active':'') + '" data-action="me-tab" data-mt="account">账号设置</button>' +
+    '</div>';
+  var body = '';
+  if (view.meTab === 'habits'){
+    body = renderHabits();
+  } else if (view.meTab === 'history'){
+    body = renderHistory();
+  } else {
+    /* 账号设置：菜单行 */
+    var arrowSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+    var icoNick = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    var icoPwd = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9.5" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+    var icoAvatar = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1.5-3.8 4.8-5.5 7.5-5.5s6 1.7 7.5 5.5"/></svg>';
+    var icoAdmin = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>';
+    var icoLogout = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>';
+    var rows = '';
+    rows += '<div class="mm-row" data-action="open-nickname"><span class="mm-ico">' + icoNick + '</span>' +
+      '<div class="mm-body"><div class="mm-t">修改昵称</div><div class="mm-s">当前：' + esc(u.nickname || '小笨猪') + '</div></div>' +
+      '<span class="mm-arrow">' + arrowSvg + '</span></div>';
+    rows += '<div class="mm-row" data-action="open-password"><span class="mm-ico">' + icoPwd + '</span>' +
+      '<div class="mm-body"><div class="mm-t">修改密码</div><div class="mm-s">需验证原密码</div></div>' +
+      '<span class="mm-arrow">' + arrowSvg + '</span></div>';
+    rows += '<div class="mm-row" data-action="open-avatar"><span class="mm-ico">' + icoAvatar + '</span>' +
+      '<div class="mm-body"><div class="mm-t">头像设置</div><div class="mm-s">12 生肖宫格或上传自定义头像</div></div>' +
+      '<span class="mm-arrow">' + arrowSvg + '</span></div>';
+    if (u.role === 'admin'){
+      rows += '<div class="mm-row" data-action="open-admin"><span class="mm-ico">' + icoAdmin + '</span>' +
+        '<div class="mm-body"><div class="mm-t">管理员面板</div><div class="mm-s">账户管理 / 邀请码 / 系统配置</div></div>' +
+        '<span class="mm-arrow">' + arrowSvg + '</span></div>';
+    }
+    rows += '<div class="mm-row danger" data-action="logout"><span class="mm-ico">' + icoLogout + '</span>' +
+      '<div class="mm-body"><div class="mm-t">退出登录</div><div class="mm-s">退出当前账号并返回登录页</div></div>' +
+      '<span class="mm-arrow">' + arrowSvg + '</span></div>';
+    body = '<div class="view-title">账号设置</div><div class="me-menu">' + rows + '</div>';
+  }
+  return card + tabs + body;
 }
 
 /* ==== 弹窗：打卡 ==== */
@@ -1700,7 +1789,7 @@ function editCheckinModal(habitId){
   );
 }
 function backfillModal(){
-  var opts = state.habits.filter(function(h){ return h.enabled; }).map(function(h){ return '<option value="'+h.id+'">'+esc(h.name)+'</option>'; }).join('');
+  var opts = state.habits.filter(function(h){ return h.enabled && !h.deleted; }).map(function(h){ return '<option value="'+h.id+'">'+esc(h.name)+'</option>'; }).join('');
   if (!opts){ toast('请先添加考核项','warn'); return; }
   var birth = ensureAppBirth();
   openModal(
@@ -1877,24 +1966,44 @@ function saveRate(){
 }
 
 /* ==== 渲染入口 ==== */
-var view = { tab:'today', histTab:'settle', circleTab:'recommend', meSeg:'posts', dmPeer:null, feedCache:{recommend:null,follow:null} };
+var view = { tab:'today', histTab:'settle', circleTab:'recommend', meSeg:'posts', meTab:'habits', dmPeer:null, feedCache:{recommend:null,follow:null} };
 var editingId = null, formIcon = 'star', formColor = COLORS[0], formType = 'check';
+/* 底部 tabbar 激活映射：当前 view.tab 对应点亮哪个底部 tab */
+function bottomTabOf(v){
+  if (v==='today' || v==='account') return 'today';
+  if (v==='habits' || v==='history' || v==='me') return 'me';
+  if (v==='circle') return 'circle';
+  if (v==='msgs') return 'msgs';
+  return 'today';
+}
 function render(){
   var main = document.getElementById('main');
   var tabs = document.querySelectorAll('.tab[data-tab]');
   for (var i=0;i<tabs.length;i++) tabs[i].classList.toggle('active', tabs[i].getAttribute('data-tab')===view.tab);
   var tbBtns = document.querySelectorAll('#tabbar .tb');
-  var homeOn = (view.tab==='today'||view.tab==='account');
-  for (var k=0;k<tbBtns.length;k++) tbBtns[k].classList.toggle('active', tbBtns[k].getAttribute('data-tab')==='today' && homeOn);
+  var activeBottom = bottomTabOf(view.tab);
+  for (var k=0;k<tbBtns.length;k++) tbBtns[k].classList.toggle('active', tbBtns[k].getAttribute('data-tab')===activeBottom);
   var html = '';
   if (view.tab==='today') html = renderToday();
   else if (view.tab==='habits') html = renderHabits();
   else if (view.tab==='account') html = renderAccount();
+  else if (view.tab==='me') html = renderMe();
+  else if (view.tab==='circle') html = renderComingSoon('动态（分享）','动态（分享）功能建设中，敬请期待');
+  else if (view.tab==='msgs') html = renderComingSoon('消息（私信/通知）','消息（私信/通知）功能建设中，敬请期待');
   else html = renderHistory();
   if (!storageOk) html = '<div class="banner">数据无法保存：当前浏览器以文件方式打开时不允许本地存储（常见于 Safari）。请改用 <b>Chrome</b> 打开本文件，数据才能长期保存；当前操作仅临时有效，建议先到「历史记录」页导出备份。</div>' + html;
   main.innerHTML = html;
   updateChip();
   bindHabitExpands();
+}
+/* 占位页：动态/消息尚未实现 */
+function renderComingSoon(title, desc){
+  return '<div class="empty" style="padding:80px 20px">' +
+    '<div style="width:64px;height:64px;border-radius:50%;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;margin:0 auto 16px">' +
+      '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>' +
+    '</div>' +
+    '<div class="t">' + esc(title) + '</div>' +
+    '<div>' + esc(desc) + '</div></div>';
 }
 function ruleOverflow(el){
   var c = el.cloneNode(true);
@@ -1993,9 +2102,10 @@ function handleAction(el, e){
     }
     case 'del-habit': {
       var hd = habitById(id);
-      if (confirm('删除考核项「'+hd.name+'」？其历史打卡与结算记录将保留，但不再显示。')){
-        for (var i=0;i<state.habits.length;i++) if (state.habits[i].id===id){ state.habits.splice(i,1); break; }
-        Store.save(); render(); toast('已删除考核项');
+      if (!hd) break;
+      if (confirm('删除考核项「'+hd.name+'」？将移入「已删除」分组，历史打卡与结算记录保留。')){
+        hd.deleted = true;
+        Store.save(); render(); toast('已移入已删除', 'good');
       }
       break;
     }
@@ -2077,7 +2187,10 @@ function handleAction(el, e){
     }
     /* ==== 用户/账户 ==== */
     case 'logout': doLogout(); break;
-    case 'open-profile': openProfileModal(); break;
+    case 'me-tab': view.meTab = el.getAttribute('data-mt') || 'habits'; render(); break;
+    case 'open-nickname': openNicknameModal(); break;
+    case 'open-password': openPasswordModal(); break;
+    case 'open-avatar': openAvatarModal(); break;
     case 'open-admin': openAdminModal(); break;
     case 'open-feedback': openFeedbackModal(); break;
     case 'pf-save-nick': saveNick(); break;
@@ -2100,6 +2213,7 @@ function handleAction(el, e){
       break;
     }
     case 'adm-ban': adminBan(el.getAttribute('data-email'), el.getAttribute('data-banned') === 'true'); break;
+    case 'adm-set-role': adminSetRole(el.getAttribute('data-email'), el.getAttribute('data-role')); break;
     case 'adm-save-invite': adminSaveInvite(); break;
     case 'adm-save-config': adminSaveConfig(); break;
     case 'close-modal':
@@ -2125,8 +2239,8 @@ document.addEventListener('click', function(e){
     var tabEl = target.closest('[data-tab]');
     if (tabEl){
       if (tabEl.closest('#tabbar')){
-        if (tabEl.getAttribute('data-tab')==='today'){ view.tab='today'; render(); }
-        else { toast('功能开发中'); }
+        view.tab = tabEl.getAttribute('data-tab');
+        render();
       } else {
         view.tab = tabEl.getAttribute('data-tab'); render();
       }
