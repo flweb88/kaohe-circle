@@ -10,7 +10,7 @@ NAS="flweb@192.168.50.2"
 SSH="ssh -o StrictHostKeyChecking=no"
 SRC_DIR="/Volumes/no2/项目/豆包/考核网站/考核小管家"
 NAS_WEB="/var/services/web"
-PHP_FILES="common.php auth.php profile.php admin.php forgot.php feedback.php avatar.php load.php save.php follow.php social.php media.php manifest_tool.php"
+PHP_FILES="common.php auth.php profile.php admin.php forgot.php feedback.php avatar.php load.php save.php follow.php social.php media.php manifest_tool.php migrate_v355.php"
 
 echo "[1/5] NAS 侧 php -l 语法检查..."
 $SSH "$NAS" "rm -rf /tmp/kaohe-lint && mkdir -p /tmp/kaohe-lint"
