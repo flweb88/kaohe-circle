@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  com.kaohe.worker.plist — 考核小管家 Mac 压缩工人 launchd 模板
+  com.kaohe.worker.plist — 考核小管家 Mac 压缩工人 launchd（已启用 2026-09-30）
 
   行为：每 StartInterval 秒跑一轮 kaohe-worker.sh（脚本自身做单轮，无活即静默退出）。
-  本文件仅为模板，本期不安装/不加载（硬约束：只写文件、不部署）。
-
-  安装步骤（部署期执行，本期不做）：
-    1. 把 kaohe-worker.sh 安装到 ~/.local/bin/kaohe-worker.sh 并 chmod +x；
-    2. 按需改下方 ProgramArguments 路径、日志路径（plist 不展开 ~，必须绝对路径）；
-    3. cp com.kaohe.worker.plist ~/Library/LaunchAgents/com.kaohe.worker.plist
-    4. launchctl load ~/Library/LaunchAgents/com.kaohe.worker.plist
-       （卸载：launchctl unload ...；立即手动触发：launchctl start com.kaohe.worker）
+  安装步骤（已执行）：
+    1. kaohe-worker.sh → ~/.local/bin/kaohe-worker.sh（chmod +x）
+    2. 本文件 → ~/Library/LaunchAgents/com.kaohe.worker.plist
+    3. launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.kaohe.worker.plist
+  运维：
+    卸载：launchctl bootout gui/$(id -u)/com.kaohe.worker
+    立即触发一轮：launchctl kickstart gui/$(id -u)/com.kaohe.worker
+    日志：~/.local/log/kaohe-worker.log（脚本自写）、kaohe-worker.{out,err}.log（launchd）
 -->
 <plist version="1.0">
 <dict>
@@ -28,6 +28,13 @@
     <!-- 每 45 秒一轮（方案要求 30~60s 区间） -->
     <key>StartInterval</key>
     <integer>45</integer>
+
+    <!-- ffmpeg 不在默认 PATH（~/.local/bin），显式注入 -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>KAOHE_FFMPEG</key>
+        <string>/Users/fangliang/.local/bin/ffmpeg</string>
+    </dict>
 
     <!-- 登录即跑一轮 -->
     <key>RunAtLoad</key>

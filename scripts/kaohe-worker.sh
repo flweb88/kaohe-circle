@@ -230,11 +230,11 @@ for fpath in "${files[@]}"; do
     [ -n "$v720f" ] && { args+=(--video720 "$v720f" --discard-pending); }
     # 压缩视频：manifest 只记 video720；原 pending 原片由 NAS 侧删除（不进 done/）
 
-    if [ $ok_prod -eq 1 ] && ssh $SSH_OPTS "$NAS_HOST" "$REMOTE_PHP" "$REMOTE_TOOL" "${args[@]}" >>"$LOG_FILE" 2>&1; then
+    if [ $ok_prod -eq 1 ] && ssh $SSH_OPTS "$NAS_HOST" sudo -n "$REMOTE_PHP" "$REMOTE_TOOL" "${args[@]}" >>"$LOG_FILE" 2>&1; then
       ok_n=$((ok_n + 1))
     else
       [ -z "$fail_reason" ] && fail_reason="manifest_tool"
-      ssh $SSH_OPTS "$NAS_HOST" "$REMOTE_PHP" "$REMOTE_TOOL" \
+      ssh $SSH_OPTS "$NAS_HOST" sudo -n "$REMOTE_PHP" "$REMOTE_TOOL" \
         --id "$id" --kind "$kind" --uploads "$NAS_UPLOADS" \
         --pending-file "$fname" --fail "$fail_reason" >>"$LOG_FILE" 2>&1 || true
       fail_n=$((fail_n + 1))
@@ -242,7 +242,7 @@ for fpath in "${files[@]}"; do
   else
     # 产物不合格：通知 NAS 标 failed（不动正式区）
     [ -z "$fail_reason" ] && fail_reason="bad_product"
-    ssh $SSH_OPTS "$NAS_HOST" "$REMOTE_PHP" "$REMOTE_TOOL" \
+    ssh $SSH_OPTS "$NAS_HOST" sudo -n "$REMOTE_PHP" "$REMOTE_TOOL" \
       --id "$id" --kind "$kind" --uploads "$NAS_UPLOADS" \
       --pending-file "$fname" --fail "$fail_reason" >>"$LOG_FILE" 2>&1 || true
     fail_n=$((fail_n + 1))
@@ -251,7 +251,7 @@ for fpath in "${files[@]}"; do
 done
 
 # ---------------- 顺手孤儿清理（pending>7天 failed+清；done>30天删） ----------------
-ssh $SSH_OPTS "$NAS_HOST" "$REMOTE_PHP" "$REMOTE_TOOL" \
+ssh $SSH_OPTS "$NAS_HOST" sudo -n "$REMOTE_PHP" "$REMOTE_TOOL" \
   --uploads "$NAS_UPLOADS" --sweep >>"$LOG_FILE" 2>&1 || true
 
 # ---------------- 批末清空 Mac 缓存 ----------------

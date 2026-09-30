@@ -104,7 +104,7 @@ function mt_product_ok(string $file, array $allowedExt, array $mimePrefixes): bo
 }
 
 // ---------------- --sweep 孤儿清理 ----------------
-if (!empty($opts['sweep'])) {
+if (isset($opts['sweep'])) {   // getopt 无参 flag 返回 false，必须用 isset 判定
     $week = 7 * 86400; $month = 30 * 86400; $now = time();
     $pendingCount = 0;
     foreach ((glob("$pendingDir/*") ?: []) as $p) {
