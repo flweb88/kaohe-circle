@@ -1,8 +1,8 @@
 #!/bin/bash
 # ============================================
-# 考核小管家 v2 部署脚本（Mac 上运行，SMB 本地源码推 NAS）
+# 考核小管家 v3 部署脚本（Mac 上运行，SMB 本地源码推 NAS）
 # 用法: bash deploy.sh
-# 作用: 推送 kaohe.html + kaohe-api（9 个 PHP + 12 生肖头像）+ .gitignore 到 NAS，
+# 作用: 推送 kaohe.html + kaohe-api（13 个 PHP + 12 生肖头像）+ uploads 目录 + .gitignore 到 NAS，
 #       自动 git 提交版本，并验证外部地址 HTTP 200
 # ============================================
 set -e
@@ -10,7 +10,7 @@ NAS="flweb@192.168.50.2"
 SSH="ssh -o StrictHostKeyChecking=no"
 SRC_DIR="/Volumes/no2/项目/豆包/考核网站/考核小管家"
 NAS_WEB="/var/services/web"
-PHP_FILES="common.php auth.php profile.php admin.php forgot.php feedback.php avatar.php load.php save.php follow.php"
+PHP_FILES="common.php auth.php profile.php admin.php forgot.php feedback.php avatar.php load.php save.php follow.php social.php media.php manifest_tool.php"
 
 echo "[1/5] NAS 侧 php -l 语法检查..."
 $SSH "$NAS" "rm -rf /tmp/kaohe-lint && mkdir -p /tmp/kaohe-lint"
@@ -22,6 +22,11 @@ $SSH "$NAS" "cat > $NAS_WEB/kaohe.html" < "$SRC_DIR/kaohe.html"
 for f in $PHP_FILES; do
   $SSH "$NAS" "cat > $NAS_WEB/kaohe-api/$f" < "$SRC_DIR/kaohe-api/$f"
 done
+
+echo "[2.5/5] 创建 uploads 媒体目录并推送 .htaccess（禁脚本执行）..."
+$SSH "$NAS" "mkdir -p $NAS_WEB/kaohe-data/uploads/_pending $NAS_WEB/kaohe-data/uploads/done"
+$SSH "$NAS" "cat > $NAS_WEB/kaohe-data/uploads/.htaccess" < "$SRC_DIR/kaohe-data/uploads/.htaccess"
+$SSH "$NAS" "chmod -R 755 $NAS_WEB/kaohe-data/uploads"
 
 echo "[3/5] 推送 12 生肖头像 ..."
 $SSH "$NAS" "mkdir -p $NAS_WEB/kaohe-api/avatars/zodiac"
