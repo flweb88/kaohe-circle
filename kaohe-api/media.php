@@ -126,7 +126,10 @@ if ($action === 'raw') {
 
     $id = isset($_GET['f']) ? basename((string)$_GET['f']) : '';
     $v = isset($_GET['v']) ? (string)$_GET['v'] : 'orig';
-    if (!in_array($v, ['orig','sm','md','video720'], true)) $v = 'orig';
+    if (!in_array($v, ['orig','sm','md','video720','poster'], true)) $v = 'orig';
+    // v3.5.4：下载文件名参数（Content-Disposition inline，保住 iOS 长按保存能力）
+    $fn = isset($_GET['fn']) ? basename((string)$_GET['fn']) : '';
+    if (strlen($fn) > 128) $fn = '';
 
     $m = db_read_json(DATA_DIR . 'uploads/manifest.php', ['items' => []]);
     $rec = $m['items'][$id] ?? null;
@@ -161,6 +164,10 @@ if ($action === 'raw') {
         header('Content-Length: ' . filesize($real));
         header('Cache-Control: public, max-age=86400');
         header('X-Content-Type-Options: nosniff');
+        // v3.5.4：下载文件名（inline 而非 attachment，保住 iOS 长按保存能力）
+        if ($fn !== '') {
+            header("Content-Disposition: inline; filename=\"{$fn}\"; filename*=UTF-8''" . rawurlencode($fn));
+        }
     }
     @readfile($real);
     exit;

@@ -32,7 +32,7 @@ require __DIR__ . '/common.php';
 // ---------------- 参数 ----------------
 $opts = getopt('', [
     'id:', 'kind:', 'uploads:', 'incoming:', 'pending-file:',
-    'orig:', 'sm:', 'md:', 'video720:', 'fail::', 'sweep', 'discard-pending',
+    'orig:', 'sm:', 'md:', 'poster:', 'video720:', 'fail::', 'sweep', 'discard-pending',
 ]);
 
 $uploads = rtrim($opts['uploads'] ?? (DATA_DIR . 'uploads/'), '/');
@@ -58,6 +58,8 @@ function role_rules(string $role, string $kind): array {
         case 'sm':
         case 'md':
             return [['jpg'], ['image/jpeg']];
+        case 'poster':
+            return [['jpg'], ['image/jpeg']];   // v3.5.4：视频封面（worker ffmpeg 抽帧 jpg）
         case 'video720':
             return [['mp4'], ['video/mp4']];
     }
@@ -162,6 +164,7 @@ $roles = [
     'orig'      => $opts['orig'] ?? '',
     'sm'        => $opts['sm'] ?? '',
     'md'        => $opts['md'] ?? '',
+    'poster'    => $opts['poster'] ?? '',
     'video720'  => $opts['video720'] ?? '',
 ];
 
@@ -209,6 +212,7 @@ foreach ($products as $role => $fname) {
     if ($role === 'orig')        $filesMap['orig'] = $fname;
     elseif ($role === 'sm')      $filesMap['sm'] = $fname;
     elseif ($role === 'md')      $filesMap['md'] = $fname;
+    elseif ($role === 'poster')  $filesMap['poster'] = $fname;
     elseif ($role === 'video720') $filesMap['video720'] = $fname;
 }
 if ($moveErr !== null) {

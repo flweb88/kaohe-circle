@@ -140,6 +140,15 @@ whitelist_kind() {
 }
 
 ok_n=0; fail_n=0
+# v3.5.4：视频抽帧封面（-ss 0.1 首帧 → poster.jpg，q:v3）；ffmpeg 缺失/抽帧失败不致命（前端 poster onerror 兜底）
+grab_poster() {
+  if [ -n "$FFMPEG_BIN" ] && command -v "$FFMPEG_BIN" >/dev/null 2>&1; then
+    "$FFMPEG_BIN" -y -ss 0.1 -i "$fpath" -frames:v 1 -q:v 3 "$pdir/$id.poster.jpg" >>"$LOG_FILE" 2>&1 || { posterf=""; return; }
+    posterf="$id.poster.jpg"
+  else
+    posterf=""
+  fi
+}
 for fpath in "${files[@]}"; do
   fname=$(basename "$fpath")
   id="${fname%%.*}"
@@ -150,7 +159,7 @@ for fpath in "${files[@]}"; do
   size=$(stat -f %z "$fpath")
   pdir="$CACHE_DIR/prod/$id"
   mkdir -p "$pdir"
-  origf=""; smf=""; mdf=""; v720f=""; fail_reason=""
+  origf=""; smf=""; mdf=""; v720f=""; posterf=""; fail_reason=""
   ok_prod=1
 
   # ---------- 压缩 ----------
@@ -174,6 +183,7 @@ for fpath in "${files[@]}"; do
     smf="$id.sm.jpg"; mdf="$id.md.jpg"
 
   elif [ "$kind" = video ]; then
+    # v3.5.4：视频帖封面——所有分支用 ffmpeg 抽首帧（-ss 0.1）输出 poster.jpg；抽帧失败不致命
     if [ "$size" -gt "$VID_BYTES" ]; then
       # >50MB：压 720p，只回传压缩版；原视频不回传、不留缓存、不落 NAS 正式区
       if [ -n "$FFMPEG_BIN" ] && command -v "$FFMPEG_BIN" >/dev/null 2>&1; then
@@ -181,6 +191,7 @@ for fpath in "${files[@]}"; do
           -vf scale=-2:720 -c:v libx264 -preset veryfast -crf 28 \
           -c:a aac -b:a 128k -movflags +faststart "$pdir/$id.720.mp4" >>"$LOG_FILE" 2>&1 || ok_prod=0
         v720f="$id.720.mp4"
+        grab_poster
       else
         ok_prod=0; fail_reason="ffmpeg_missing"
         log "video $id >50MB but ffmpeg unavailable; mark failed"
@@ -189,6 +200,7 @@ for fpath in "${files[@]}"; do
       # ≤50MB 且浏览器原生可播容器（mp4/webm）：原样回传
       origf="$fname"
       cp "$fpath" "$pdir/$fname"
+      grab_poster
     else
       # ≤50MB 非原生容器（mov/m4v/mkv/avi）：ffmpeg 统一转 mp4（H.264+AAC，faststart，原分辨率）
       if [ -n "$FFMPEG_BIN" ] && command -v "$FFMPEG_BIN" >/dev/null 2>&1; then
@@ -196,6 +208,7 @@ for fpath in "${files[@]}"; do
           -c:v libx264 -preset veryfast -crf 23 \
           -c:a aac -movflags +faststart "$pdir/$id.720.mp4" >>"$LOG_FILE" 2>&1 || ok_prod=0
         v720f="$id.720.mp4"
+        grab_poster
       else
         ok_prod=0; fail_reason="ffmpeg_missing"
         log "video $id container-transcode but ffmpeg unavailable; mark failed"
@@ -213,7 +226,7 @@ for fpath in "${files[@]}"; do
       [ -f "$pf" ] || return 1
       mt=$(file --mime-type -b "$pf" 2>/dev/null)
       case "$1" in
-        sm|md)    case "$mt" in image/jpeg) ;; *) return 1;; esac ;;
+        sm|md|poster) case "$mt" in image/jpeg) ;; *) return 1;; esac ;;
         video720) case "$mt" in video/mp4)  ;; *) return 1;; esac ;;
         orig)
           case "$kind" in
@@ -227,6 +240,7 @@ for fpath in "${files[@]}"; do
     [ -n "$origf" ]    && { review_role orig "$origf"    || ok_prod=0; }
     [ -n "$smf" ]      && { review_role sm   "$smf"      || ok_prod=0; }
     [ -n "$mdf" ]      && { review_role md   "$mdf"      || ok_prod=0; }
+    [ -n "$posterf" ]  && { review_role poster "$posterf" || posterf=""; }   # 封面抽帧失败不阻断（前端 onerror 兜底）
     [ -n "$v720f" ]    && { review_role video720 "$v720f" || ok_prod=0; }
   fi
 
@@ -234,7 +248,7 @@ for fpath in "${files[@]}"; do
   if [ $ok_prod -eq 1 ]; then
     ssh $SSH_OPTS "$NAS_HOST" "mkdir -p '$NAS_UPLOADS/_incoming/$id'" >>"$LOG_FILE" 2>&1
     # 逐文件原始二进制回传（ssh 'cat >' < local）；rsync over ssh 在本机 NAS 不可用
-    for pf in "$origf" "$smf" "$mdf" "$v720f"; do
+    for pf in "$origf" "$smf" "$mdf" "$posterf" "$v720f"; do
       [ -n "$pf" ] || continue
       ssh $SSH_OPTS "$NAS_HOST" "cat > '$NAS_UPLOADS/_incoming/$id/$pf'" \
         < "$pdir/$pf" >>"$LOG_FILE" 2>&1 || { ok_prod=0; fail_reason="upload_failed"; break; }
@@ -245,6 +259,7 @@ for fpath in "${files[@]}"; do
     [ -n "$origf" ] && args+=(--orig "$origf")
     [ -n "$smf" ]   && args+=(--sm "$smf")
     [ -n "$mdf" ]   && args+=(--md "$mdf")
+    [ -n "$posterf" ] && args+=(--poster "$posterf")
     [ -n "$v720f" ] && { args+=(--video720 "$v720f" --discard-pending); }
     # 压缩视频：manifest 只记 video720；原 pending 原片由 NAS 侧删除（不进 done/）
 
