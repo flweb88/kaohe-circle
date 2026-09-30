@@ -145,10 +145,26 @@ foreach ($comments as $c) {
     $newItems[] = $item;
 }
 
-/* ---------- 4. 落盘：先 posts.php，再清空 social.php comments[] ---------- */
-$ok = db_transact_json($postsFile, POSTS_DEFAULT_M, function($p) use ($newItems) {
+/* ---------- 4. 落盘：先 posts.php，再清空 social.php comments[] ----------
+ *    同一事务内：追加 c_ 回复帖 + 改写旧帖对旧评论 id 的外键引用
+ *    （quote_comment / quoted_post_id 指向本次迁移的旧评论 → c_<旧id>；repost_of 是帖子 id 不动） */
+$migratedSet = [];   // 本次迁移的旧评论 id 集合
+foreach ($comments as $c) { if (!empty($c['id'])) $migratedSet[$c['id']] = true; }
+$quoteFixCount = 0;
+$ok = db_transact_json($postsFile, POSTS_DEFAULT_M, function($p) use ($newItems, $migratedSet, &$quoteFixCount) {
     if (!isset($p['items']) || !is_array($p['items'])) $p['items'] = [];
     if (!isset($p['reqs']) || !is_array($p['reqs']))   $p['reqs'] = [];
+    // 改写旧帖外键：quote_comment（v3.5.4 评论转发）/ quoted_post_id 指向旧评论 id → c_ 前缀
+    foreach ($p['items'] as &$old) {
+        foreach (['quote_comment', 'quoted_post_id'] as $fk) {
+            $v = $old[$fk] ?? null;
+            if (is_string($v) && $v !== '' && strncmp($v, 'c_', 2) !== 0 && isset($migratedSet[$v])) {
+                $old[$fk] = 'c_' . $v;
+                $quoteFixCount++;
+            }
+        }
+        unset($old);
+    }
     foreach ($newItems as $ni) $p['items'][] = $ni;
     return $p;
 });
@@ -171,6 +187,7 @@ println("  根评论        : {$rootCount}");
 println("  回复评论      : {$replyCount}");
 println("  软删评论      : {$deletedCount}");
 println("  含媒体评论    : {$mediaCmts}（media_ids 非空）");
+println("  旧帖外键改写  : {$quoteFixCount} 处（quote_comment/quoted_post_id → c_ 前缀）");
 println("  新 c_ 帖数    : {$moved}（自检：与旧评论总数" . (count($comments) === $moved ? "一致 ✓" : "不一致 ✗") . "）");
 println("  social.php comments[] 已清空；comment_likes/comment_bookmarks/likes/bookmarks/reposts 未动。");
 println("  回滚命令：php " . basename(__FILE__) . " --rollback");
