@@ -19,6 +19,7 @@ const MIME_WHITELIST = [
     'image/gif'  => ['image', 'gif'],
     'video/mp4'  => ['video', 'mp4'],
     'video/webm' => ['video', 'webm'],
+    'video/quicktime' => ['video', 'mov'],   // iPhone/Mac 默认 .mov（HEVC/H.264），工人压缩时统一转 mp4
     'audio/mpeg' => ['audio', 'mp3'],
     'audio/mp4'  => ['audio', 'm4a'],
     'audio/x-m4a'=> ['audio', 'm4a'],
@@ -63,7 +64,8 @@ if ($action === 'upload') {
     // 客户端扩展名双校验（允许 jpg/jpeg 等同义）
     $origExt = strtolower(pathinfo((string)($f['name'] ?? ''), PATHINFO_EXTENSION));
     $extAlias = ['jpg'=>['jpg','jpeg'], 'mp3'=>['mp3'], 'wav'=>['wav'], 'm4a'=>['m4a','mp4a'],
-                 'png'=>['png'], 'webp'=>['webp'], 'gif'=>['gif'], 'mp4'=>['mp4'], 'webm'=>['webm']];
+                 'png'=>['png'], 'webp'=>['webp'], 'gif'=>['gif'], 'mp4'=>['mp4'], 'webm'=>['webm'],
+                 'mov'=>['mov','qt']];
     $allow = $extAlias[$ext] ?? [$ext];
     if (!in_array($origExt, $allow, true)) {
         json_out(['ok' => false, 'err' => 'type', 'msg' => '文件扩展名与内容不符']);
@@ -127,11 +129,13 @@ if ($action === 'raw') {
     }
     // 二次类型校验：扩展名必须在白名单派生集合内
     $ext = strtolower(pathinfo($real, PATHINFO_EXTENSION));
-    $allowExt = ['jpg','jpeg','png','webp','gif','mp4','webm','mp3','m4a','wav'];
+    $allowExt = ['jpg','jpeg','png','webp','gif','mp4','webm','mov','mp3','m4a','wav'];
     if (!in_array($ext, $allowExt, true)) json_out(['ok' => false, 'err' => 'type', 'msg' => '类型非法'], 415);
 
     if (!headers_sent()) {
-        header('Content-Type: ' . ($rec['mime'] ?? 'application/octet-stream'));
+        // video720 一律按 mp4 输出（工人压缩产物统一 mp4 容器，避免 quicktime Content-Type 干扰播放）
+        $ct = ($v === 'video720') ? 'video/mp4' : ($rec['mime'] ?? 'application/octet-stream');
+        header('Content-Type: ' . $ct);
         header('Content-Length: ' . filesize($real));
         header('Cache-Control: public, max-age=86400');
         header('X-Content-Type-Options: nosniff');

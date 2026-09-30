@@ -515,7 +515,7 @@ footer .fb-link:hover{text-decoration:underline}
 <div id="auth-root" style="display:none"></div>
 <div id="app">
   <main id="main"></main>
-  <footer>考核小管家 v3.5.1 · 考核圈社交版<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
+  <footer>考核小管家 v3.5.2 · 考核圈社交版<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
 </div>
 <nav class="tabbar" id="tabbar">
   <button class="tb" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>首页</button>
@@ -876,7 +876,7 @@ function renderAuth(){
   }
   document.getElementById('auth-root').innerHTML =
     '<div class="rk-wrap">' + brandHtml + body +
-      '<div class="rk-ver">考核圈 · 社交版第一页 v3.5.1</div>' +
+      '<div class="rk-ver">考核圈 · 社交版第一页 v3.5.2</div>' +
     '</div>';
   if (authMode === 'register'){
     refreshCaptcha();
@@ -2463,7 +2463,7 @@ function cmAddMedia(){
   var fi = document.createElement('input');
   fi.type = 'file';
   fi.multiple = true;
-  fi.accept = 'image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,audio/mpeg,audio/mp4,audio/x-m4a,audio/wav';
+  fi.accept = 'image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,audio/mpeg,audio/mp4,audio/x-m4a,audio/wav';
   fi.onchange = function(e){
     var files = Array.prototype.slice.call(e.target.files||[]);
     files.forEach(function(f){ uploadMediaFile(f); });
