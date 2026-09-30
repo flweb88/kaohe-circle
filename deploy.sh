@@ -1,0 +1,37 @@
+#!/bin/bash
+# ============================================
+# 考核小管家 v2 部署脚本（Mac 上运行，SMB 本地源码推 NAS）
+# 用法: bash deploy.sh
+# 作用: 推送 kaohe.html + kaohe-api（9 个 PHP + 12 生肖头像）+ .gitignore 到 NAS，
+#       自动 git 提交版本，并验证外部地址 HTTP 200
+# ============================================
+set -e
+NAS="flweb@192.168.50.2"
+SSH="ssh -o StrictHostKeyChecking=no"
+SRC_DIR="/Volumes/no2/项目/豆包/考核网站/考核小管家"
+NAS_WEB="/var/services/web"
+PHP_FILES="common.php auth.php profile.php admin.php forgot.php feedback.php avatar.php load.php save.php follow.php"
+
+echo "[1/5] NAS 侧 php -l 语法检查..."
+$SSH "$NAS" "rm -rf /tmp/kaohe-lint && mkdir -p /tmp/kaohe-lint"
+tar -C "$SRC_DIR/kaohe-api" -cf - $PHP_FILES | $SSH "$NAS" "tar -C /tmp/kaohe-lint -xf -"
+$SSH "$NAS" 'for f in /tmp/kaohe-lint/*.php; do php -l "$f" >/dev/null || { echo "LINT FAIL: $f"; exit 1; }; done && echo LINT_ALL_OK'
+
+echo "[2/5] 推送 kaohe.html 与 kaohe-api ..."
+$SSH "$NAS" "cat > $NAS_WEB/kaohe.html" < "$SRC_DIR/kaohe.html"
+for f in $PHP_FILES; do
+  $SSH "$NAS" "cat > $NAS_WEB/kaohe-api/$f" < "$SRC_DIR/kaohe-api/$f"
+done
+
+echo "[3/5] 推送 12 生肖头像 ..."
+$SSH "$NAS" "mkdir -p $NAS_WEB/kaohe-api/avatars/zodiac"
+tar --exclude='._*' -C "$SRC_DIR/kaohe-api/avatars/zodiac" -cf - . | $SSH "$NAS" "tar -C $NAS_WEB/kaohe-api/avatars/zodiac -xf -"
+
+echo "[4/5] 更新 .gitignore 并 git 提交 ..."
+$SSH "$NAS" "cat > $NAS_WEB/.gitignore" < "$SRC_DIR/.gitignore"
+MSG="deploy $(date +%Y-%m-%d_%H%M)"
+$SSH "$NAS" "cd $NAS_WEB && git add -A && (git diff --cached --quiet || git commit -m \"$MSG\") && git log --oneline -3"
+
+echo "[5/5] 验证页面 ..."
+curl -s --max-time 10 -o /dev/null -w "HTTP %{http_code}\n" "http://flweb.synology.me:8081/kaohe.html"
+echo "Done."

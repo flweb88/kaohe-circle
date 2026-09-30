@@ -1,2 +1,11 @@
-_shots/
 .DS_Store
+._*
+@eaDir/
+index.html
+web_images/
+考核小管家.html
+kaohe-data/
+_shots/
+b.txt
+test_unlink.txt
+artifacts/
