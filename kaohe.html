@@ -678,6 +678,69 @@ footer .fb-link:hover{text-decoration:underline}
   .ul-row{padding:11px 12px}
   .ul-ava{width:40px;height:40px}
 }
+
+/* ===== v3.7.0 私信与通知 ===== */
+.tabbar .tb .badge.badge-dm{background:var(--primary)}
+.msgs-subtabs{display:flex;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:5px;box-shadow:var(--shadow);margin:6px 0 14px}
+.msgs-subtabs .msub{flex:1;padding:9px 0;border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);text-align:center;cursor:pointer;transition:all .18s}
+.msgs-subtabs .msub:hover{color:var(--text)}
+.msgs-subtabs .msub.active{background:var(--primary);color:#fff;box-shadow:0 3px 8px rgba(29,124,242,.3)}
+.msgs-head{display:flex;align-items:center;justify-content:space-between;margin:4px 2px 10px}
+.msgs-head .mh-title{font-size:16px;font-weight:700}
+.msgs-head .mh-btn{font-size:13px;color:var(--primary);font-weight:600;cursor:pointer;padding:6px 10px;border-radius:8px;border:none;background:none}
+.msgs-head .mh-btn:hover{background:var(--primary-soft)}
+.dm-layout{display:flex;flex-direction:column;gap:10px;min-height:calc(100vh - 220px)}
+.dm-list-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.dm-row{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.dm-row:last-child{border-bottom:none}
+.dm-row:hover{background:#F8F9FC}
+.dm-row.active{background:var(--primary-soft)}
+.dm-row img.dmAva,.dm-row .dmAva-ph{width:44px;height:44px;border-radius:50%;object-fit:cover;background:#F1F2F6;flex:none}
+.dm-row .dmAva-ph{background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px}
+.dm-row .dmInfo{flex:1;min-width:0}
+.dm-row .dmName{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:6px}
+.dm-row .dmLast{font-size:12.5px;color:var(--muted);margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all;line-height:1.4}
+.dm-row .dmRight{text-align:right;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.dm-row .dmTime{font-size:11px;color:var(--muted)}
+.dm-row .dmUnread{min-width:19px;height:19px;padding:0 6px;border-radius:999px;background:var(--danger);color:#fff;font-size:11px;font-weight:700;line-height:19px;text-align:center}
+.chat-pane{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;min-height:480px}
+.chat-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);flex:none}
+.chat-head .chBack{font-size:22px;color:var(--text);cursor:pointer;padding:2px 10px;border-radius:8px;line-height:1;border:none;background:none}
+.chat-head .chBack:hover{background:#F1F2F6}
+.chat-head img.chAva,.chat-head .chAva-ph{width:36px;height:36px;border-radius:50%;object-fit:cover;background:#F1F2F6;flex:none}
+.chat-head .chAva-ph{background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700}
+.chat-head .chName{font-weight:700;font-size:14.5px;cursor:pointer}
+.chat-head .chEmail{font-size:11.5px;color:var(--muted)}
+.chat-bubbles{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#FAFBFD;min-height:280px}
+.bubble{max-width:70%;padding:9px 13px;border-radius:14px;font-size:14px;line-height:1.55;word-break:break-word;white-space:pre-wrap;position:relative}
+.bubble.mine{align-self:flex-end;background:var(--primary);color:#fff;border-bottom-right-radius:4px}
+.bubble.theirs{align-self:flex-start;background:#fff;color:var(--text);border:1px solid var(--border);border-bottom-left-radius:4px}
+.bubble .bTime{display:block;font-size:10.5px;color:var(--muted);margin-top:4px}
+.bubble.mine .bTime{color:rgba(255,255,255,.75)}
+.chat-input{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);align-items:flex-end;flex:none}
+.chat-input textarea{flex:1;resize:none;min-height:40px;max-height:120px;border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-size:14px;outline:none;font-family:inherit}
+.chat-input textarea:focus{border-color:var(--primary)}
+.chat-locked{padding:14px;text-align:center;color:var(--muted);font-size:13px;border-top:1px solid var(--border);background:#F8F9FC}
+.chat-empty{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px;color:var(--muted);text-align:center}
+.notif-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.notif-empty{padding:48px 20px;text-align:center;color:var(--muted)}
+.notif-empty .t{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
+/* 手机端：列表/聊天二选一 */
+@media(max-width:1279px){
+  .dm-layout.conv-open .dm-list-wrap{display:none}
+  .dm-layout:not(.conv-open) .chat-pane{display:none}
+}
+@media(max-width:480px){
+  .bubble{max-width:78%}
+}
+/* 桌面端：左右分栏 + 通知居中 */
+@media(min-width:1280px){
+  .dm-layout{flex-direction:row;align-items:stretch;gap:14px}
+  .dm-layout .dm-list-wrap{width:320px;flex:none}
+  .dm-layout .chat-pane{flex:1;min-height:600px}
+  .notif-wrap{max-width:720px;margin-left:auto;margin-right:auto}
+}
+
 </style>
 </head>
 <body>
@@ -685,12 +748,12 @@ footer .fb-link:hover{text-decoration:underline}
 <div id="auth-root" style="display:none"></div>
 <div id="app">
   <main id="main"></main>
-  <footer>考核小管家 v3.6.0 · 考核圈社交版<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
+  <footer>考核小管家 v3.7.0 · 考核圈社交版<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
 </div>
 <nav class="tabbar" id="tabbar">
   <button class="tb" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>首页</button>
   <button class="tb" data-tab="circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>动态</button>
-  <button class="tb" data-tab="msgs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 8.5-8.5 8.38 8.38 0 0 1 8.5 8.5z"/></svg>消息<span class="badge" id="badge-msgs">0</span></button>
+  <button class="tb" data-tab="msgs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 8.5-8.5 8.38 8.38 0 0 1 8.5 8.5z"/></svg>消息<span class="badge badge-dm" id="badge-dm" style="display:none">0</span><span class="badge badge-notif" id="badge-notif" style="display:none;left:calc(50% + 22px)">0</span></button>
   <button class="tb" data-tab="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>我的</button>
 </nav>
 <div id="modal-root"></div>
@@ -1046,7 +1109,7 @@ function renderAuth(){
   }
   document.getElementById('auth-root').innerHTML =
     '<div class="rk-wrap">' + brandHtml + body +
-      '<div class="rk-ver">考核圈 · 社交版第一页 v3.6.0</div>' +
+      '<div class="rk-ver">考核圈 · 社交版第一页 v3.7.0</div>' +
     '</div>';
   if (authMode === 'register'){
     refreshCaptcha();
@@ -2244,7 +2307,7 @@ function saveRate(){
 }
 
 /* ==== 渲染入口 ==== */
-var view = { tab:'today', homeTab:'checkin', histTab:'settle', circleTab:'recommend', meSeg:'posts', meTab:'habits', dmPeer:null, feedCache:{recommend:null,follow:null}, profileEmail:null, userListMode:null, userListEmail:null, userListCursor:null, userListUsers:[], userListLoading:false, userListNoMore:false, userListMe:false };
+var view = { tab:'today', homeTab:'checkin', histTab:'settle', circleTab:'recommend', meSeg:'posts', meTab:'habits', dmPeer:null, feedCache:{recommend:null,follow:null}, profileEmail:null, userListMode:null, userListEmail:null, userListCursor:null, userListUsers:[], userListLoading:false, userListNoMore:false, userListMe:false, msgsSubTab:'dm', dm:{ convId:null, list:[], loading:false, noMore:false, peer:null, messages:[], messagesLoading:false, canSend:true, sending:false, conversationsLoaded:false }, notif:{ list:[], loading:false, noMore:false, listLoaded:false }, unreadBadge:{ dm:0, notify:0 } };
 var editingId = null, formIcon = 'star', formColor = COLORS[0], formType = 'check';
 /* 底部 tabbar 激活映射：当前 view.tab 对应点亮哪个底部 tab */
 function bottomTabOf(v){
@@ -2269,7 +2332,7 @@ function render(){
   else if (view.tab==='circle') html = view.postDetail ? renderPostDetail() : renderCircle();
   else if (view.tab==='user-profile') html = renderUserProfile();
   else if (view.tab==='user-list') html = renderUserList();
-  else if (view.tab==='msgs') html = renderComingSoon('消息（私信/通知）','消息（私信/通知）功能建设中，敬请期待');
+  else if (view.tab==='msgs') html = renderMsgs();
   else html = renderHistory();
   if (!storageOk) html = '<div class="banner">数据无法保存：当前浏览器以文件方式打开时不允许本地存储（常见于 Safari）。请改用 <b>Chrome</b> 打开本文件，数据才能长期保存；当前操作仅临时有效，建议先到「历史记录」页导出备份。</div>' + html;
   main.innerHTML = html;
@@ -2280,6 +2343,11 @@ function render(){
     var t0 = view.circleTab||'recommend';
     if (!view.feed[t0].loaded && !view.feed[t0].loading) loadFeed(t0, false);
   }
+  if (view.tab === 'msgs'){
+    refreshUnreadBadge();
+    if (view.msgsSubTab === 'dm' && !view.dm.conversationsLoaded && !view.dm.loading) loadConversations();
+    if (view.msgsSubTab === 'notif' && !view.notif.listLoaded && !view.notif.loading) loadNotif();
+  }
 }
 /* 占位页：动态/消息尚未实现 */
 function renderComingSoon(title, desc){
@@ -2289,6 +2357,437 @@ function renderComingSoon(title, desc){
     '</div>' +
     '<div class="t">' + esc(title) + '</div>' +
     '<div>' + esc(desc) + '</div></div>';
+}
+
+/* ================= v3.7.0 私信与通知 ================= */
+function fmtHM(s){
+  if (!s) return '';
+  var d = new Date(String(s).replace(' ','T'));
+  if (isNaN(d.getTime())) return String(s).slice(11,16);
+  var hh = String(d.getHours()).padStart(2,'0');
+  var mm = String(d.getMinutes()).padStart(2,'0');
+  var sameDay = (function(){
+    var now = new Date();
+    return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && d.getDate()===now.getDate();
+  })();
+  if (sameDay) return hh + ':' + mm;
+  return String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function fmtBadgeNum(n){
+  n = parseInt(n,10) || 0;
+  if (n <= 0) return '';
+  return n > 99 ? '99+' : String(n);
+}
+function refreshUnreadBadge(){
+  if (!Auth.token) return;
+  postJSON('kaohe-api/notifications.php?action=unread', { token: Auth.token })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        view.unreadBadge.dm = res.json.dm || 0;
+        view.unreadBadge.notify = res.json.notify || 0;
+        applyBadgeDom();
+      }
+    }).catch(function(){ /* 静默：接口未就绪/离线时不打扰 */ });
+}
+function applyBadgeDom(){
+  var dmEl = document.getElementById('badge-dm');
+  var nfEl = document.getElementById('badge-notif');
+  if (dmEl){
+    var dmTxt = fmtBadgeNum(view.unreadBadge.dm);
+    dmEl.textContent = dmTxt;
+    dmEl.style.display = dmTxt ? 'block' : 'none';
+  }
+  if (nfEl){
+    var nfTxt = fmtBadgeNum(view.unreadBadge.notify);
+    nfEl.textContent = nfTxt;
+    nfEl.style.display = nfTxt ? 'block' : 'none';
+  }
+}
+function avaHtml(avatar, cls, phCls){
+  var url = avatarUrl(avatar);
+  if (url) return '<img class="' + cls + '" src="' + url + '" alt="" onerror="this.style.display=\'none\'">';
+  return '<div class="' + (phCls || cls) + '">?</div>';
+}
+function renderMsgs(){
+  var sub = view.msgsSubTab || 'dm';
+  var tabs = '<div class="msgs-subtabs">' +
+    '<div class="msub' + (sub==='dm'?' active':'') + '" data-action="msgs-sub-tab" data-st="dm">💬 私信</div>' +
+    '<div class="msub' + (sub==='notif'?' active':'') + '" data-action="msgs-sub-tab" data-st="notif">🔔 通知</div>' +
+  '</div>';
+  return tabs + (sub === 'dm' ? renderDmLayout() : renderNotifLayout());
+}
+function renderDmLayout(){
+  var d = view.dm;
+  // 会话列表
+  var listHtml;
+  if (d.loading && !d.list.length){
+    listHtml = '<div class="feed-loading">正在加载会话…</div>';
+  } else if (!d.list.length){
+    listHtml = '<div class="empty"><div class="t">还没有私信</div><div>去用户主页发条私信吧</div></div>';
+  } else {
+    listHtml = d.list.map(function(c){
+      var peer = c.peer || {};
+      var ava = avaHtml(peer.avatar, 'dmAva', 'dmAva-ph');
+      var last = c.last_message || {};
+      var bodyTxt = last.body ? esc(last.body) : '<span style="color:var(--muted)">…</span>';
+      var unreadTxt = c.unread_count > 0 ? '<div class="dmUnread">' + fmtBadgeNum(c.unread_count) + '</div>' : '';
+      var activeCls = (d.convId === c.conversation_id) ? ' active' : '';
+      return '<div class="dm-row' + activeCls + '" data-action="open-conv" data-id="' + esc(c.conversation_id) + '">' +
+        ava +
+        '<div class="dmInfo">' +
+          '<div class="dmName">' + esc(peer.nickname || '小笨猪') + '</div>' +
+          '<div class="dmLast">' + bodyTxt + '</div>' +
+        '</div>' +
+        '<div class="dmRight">' +
+          '<div class="dmTime">' + esc(fmtHM(c.updated_at || (last && last.ts))) + '</div>' +
+          unreadTxt +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+  // 聊天窗
+  var chatHtml = renderChatPane();
+  return '<div class="dm-layout' + (d.convId ? ' conv-open' : '') + '">' +
+    '<div class="dm-list-wrap">' + listHtml + '</div>' +
+    chatHtml +
+  '</div>';
+}
+function renderChatPane(){
+  var d = view.dm;
+  if (!d.convId){
+    // 桌面端占位
+    return '<div class="chat-pane" style="display:flex"><div class="chat-empty">选择左侧会话开始聊天</div></div>';
+  }
+  var peer = d.peer || {};
+  var ava = avaHtml(peer.avatar, 'chAva', 'chAva-ph');
+  var bubbles;
+  if (d.messagesLoading && !d.messages.length){
+    bubbles = '<div class="feed-loading" style="padding:40px 20px">正在加载消息…</div>';
+  } else if (!d.messages.length){
+    bubbles = '<div class="chat-empty">还没有消息，打个招呼吧</div>';
+  } else {
+    bubbles = d.messages.map(function(m){
+      var mine = !!m.mine;
+      return '<div class="bubble ' + (mine ? 'mine' : 'theirs') + '">' +
+        esc(m.body) +
+        '<span class="bTime">' + esc(fmtHM(m.created_at)) + '</span>' +
+      '</div>';
+    }).join('');
+  }
+  var inputHtml;
+  if (d.canSend === false){
+    inputHtml = '<div class="chat-locked">对方已限制互动</div>';
+  } else {
+    var sendTxt = d.sending ? '发送中…' : '发送';
+    inputHtml = '<div class="chat-input">' +
+      '<textarea id="chat-input-ta" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>' +
+      '<button class="btn btn-primary sendBtn" data-action="dm-send"' + (d.sending ? ' disabled' : '') + '>' + sendTxt + '</button>' +
+    '</div>';
+  }
+  return '<div class="chat-pane">' +
+    '<div class="chat-head">' +
+      '<button class="chBack" data-action="close-conv" title="返回">‹</button>' +
+      ava +
+      '<div><div class="chName" data-action="goto-user" data-email="' + esc(peer.email||'') + '">' + esc(peer.nickname || '小笨猪') + '</div>' +
+      '<div class="chEmail">' + esc(peer.email || '') + '</div></div>' +
+    '</div>' +
+    '<div class="chat-bubbles" id="chat-bubbles">' + bubbles + '</div>' +
+    inputHtml +
+  '</div>';
+}
+function loadConversations(){
+  if (!Auth.token) return;
+  view.dm.loading = true;
+  postJSON('kaohe-api/dms.php?action=conversations', { token: Auth.token })
+    .then(function(res){
+      view.dm.loading = false;
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        view.dm.list = res.json.items || [];
+        view.dm.conversationsLoaded = true;
+        // 如果当前选中的会话还在，刷新其 peer/canSend
+        if (view.dm.convId){
+          for (var i=0;i<view.dm.list.length;i++){
+            if (view.dm.list[i].conversation_id === view.dm.convId){
+              view.dm.peer = view.dm.list[i].peer;
+              view.dm.canSend = view.dm.list[i].can_send !== false;
+              break;
+            }
+          }
+        }
+        render();
+        scrollBubblesBottom();
+      } else {
+        toast(apiMsg(res), 'warn');
+        render();
+      }
+    }).catch(function(){
+      view.dm.loading = false;
+      toast('网络错误', 'warn');
+      render();
+    });
+}
+function openConversation(convId){
+  view.dm.convId = convId;
+  view.dm.messages = [];
+  view.dm.messagesLoading = true;
+  // 从会话列表里拿 peer/canSend
+  view.dm.peer = null;
+  view.dm.canSend = true;
+  for (var i=0;i<view.dm.list.length;i++){
+    if (view.dm.list[i].conversation_id === convId){
+      view.dm.peer = view.dm.list[i].peer;
+      view.dm.canSend = view.dm.list[i].can_send !== false;
+      break;
+    }
+  }
+  render();
+  // 若 peer 未知（例如从通知中心点进来、列表尚未加载），先补拉一次会话列表
+  var ensurePeer;
+  if (view.dm.peer){
+    ensurePeer = Promise.resolve();
+  } else {
+    ensurePeer = postJSON('kaohe-api/dms.php?action=conversations', { token: Auth.token })
+      .then(function(res){
+        if (apiFail(res)) return;
+        if (res.json && res.json.ok){
+          view.dm.list = res.json.items || [];
+          view.dm.conversationsLoaded = true;
+          for (var j=0;j<view.dm.list.length;j++){
+            if (view.dm.list[j].conversation_id === convId){
+              view.dm.peer = view.dm.list[j].peer;
+              view.dm.canSend = view.dm.list[j].can_send !== false;
+              break;
+            }
+          }
+        }
+      }).catch(function(){});
+  }
+  ensurePeer.then(function(){
+    // 拉消息
+    postJSON('kaohe-api/dms.php?action=messages', { token: Auth.token, conversation_id: convId, limit: 50 })
+      .then(function(res){
+        view.dm.messagesLoading = false;
+        if (apiFail(res)) return;
+        if (res.json && res.json.ok){
+          view.dm.messages = res.json.items || [];
+          // 标记已读（不等待响应，不阻塞 UI）
+          postJSON('kaohe-api/dms.php?action=mark_read', { token: Auth.token, conversation_id: convId })
+            .then(function(mrRes){ if (!apiFail(mrRes) && mrRes.json && mrRes.json.ok){ refreshUnreadBadge(); } }).catch(function(){});
+          render();
+          scrollBubblesBottom();
+        } else {
+          toast(apiMsg(res), 'warn');
+          render();
+        }
+      }).catch(function(){
+        view.dm.messagesLoading = false;
+        toast('网络错误', 'warn');
+        render();
+      });
+  });
+}
+function closeConversation(){
+  view.dm.convId = null;
+  view.dm.messages = [];
+  view.dm.peer = null;
+  render();
+  loadConversations();  // 返回列表时刷新未读
+}
+function sendDm(){
+  var ta = document.getElementById('chat-input-ta');
+  var body = ta ? ta.value.trim() : '';
+  if (!body){ toast('消息不能为空', 'warn'); return; }
+  if (!view.dm.convId){ toast('请先选择会话', 'warn'); return; }
+  view.dm.sending = true;
+  render();
+  postJSON('kaohe-api/dms.php?action=send', { token: Auth.token, conversation_id: view.dm.convId, body: body })
+    .then(function(res){
+      view.dm.sending = false;
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        // 乐观刷新：把新消息插入列表
+        var msg = res.json.message || { body: body, created_at: null, mine: true };
+        msg.mine = true;
+        view.dm.messages.push(msg);
+        if (ta) ta.value = '';
+        render();
+        scrollBubblesBottom();
+        loadConversations();  // 刷新会话列表顺序
+        refreshUnreadBadge();
+      } else {
+        toast(apiMsg(res), 'warn');
+        render();
+      }
+    }).catch(function(){
+      view.dm.sending = false;
+      toast('网络错误', 'warn');
+      render();
+    });
+}
+function openOrCreateDm(email){
+  if (!email){ toast('用户不存在', 'warn'); return; }
+  email = String(email).toLowerCase();
+  var me = Auth.user || {};
+  if (email === (me.email||'').toLowerCase()){ toast('不能给自己发私信', 'warn'); return; }
+  postJSON('kaohe-api/dms.php?action=open_or_create', { token: Auth.token, email: email })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        view.msgsSubTab = 'dm';
+        view.tab = 'msgs';
+        // 先切 tab 拉会话列表，再打开会话
+        render();
+        loadConversations();
+        // 等会话列表回来后打开对应会话
+        setTimeout(function(){
+          view.dm.convId = res.json.conversation_id;
+          view.dm.peer = res.json.peer || null;
+          view.dm.canSend = true;
+          view.dm.messages = [];
+          view.dm.messagesLoading = true;
+          render();
+          postJSON('kaohe-api/dms.php?action=messages', { token: Auth.token, conversation_id: res.json.conversation_id, limit: 50 })
+            .then(function(mRes){
+              view.dm.messagesLoading = false;
+              if (apiFail(mRes)) return;
+              if (mRes.json && mRes.json.ok){
+                view.dm.messages = mRes.json.items || [];
+                postJSON('kaohe-api/dms.php?action=mark_read', { token: Auth.token, conversation_id: res.json.conversation_id })
+                  .then(function(mr){ if (!apiFail(mr) && mr.json && mr.json.ok) refreshUnreadBadge(); }).catch(function(){});
+                render();
+                scrollBubblesBottom();
+              } else {
+                toast(apiMsg(mRes), 'warn');
+                render();
+              }
+            }).catch(function(){ view.dm.messagesLoading = false; render(); });
+        }, 50);
+      } else {
+        toast(apiMsg(res), 'warn');
+      }
+    }).catch(function(){ toast('网络错误', 'warn'); });
+}
+function scrollBubblesBottom(){
+  setTimeout(function(){
+    var box = document.getElementById('chat-bubbles');
+    if (box) box.scrollTop = box.scrollHeight;
+  }, 50);
+}
+/* ---- 通知中心 ---- */
+function notifIcon(type){
+  switch(type){
+    case 'like': return '❤';
+    case 'mention': return '@';
+    case 'reply': return '💬';
+    case 'repost': return '🔁';
+    case 'quote': return '💬';
+    case 'follow': return '➕';
+    case 'dm': return '✉️';
+    case 'comment': return '💬';
+    default: return '🔔';
+  }
+}
+function renderNotifLayout(){
+  var n = view.notif;
+  var head = '<div class="msgs-head">' +
+    '<div class="mh-title">通知</div>' +
+    '<button class="mh-btn" data-action="notif-mark-all">全部已读</button>' +
+  '</div>';
+  var body;
+  if (n.loading && !n.list.length){
+    body = '<div class="feed-loading">正在加载通知…</div>';
+  } else if (!n.list.length){
+    body = '<div class="notif-empty"><div class="t">暂无通知</div><div>点赞、回复、关注等动态会出现在这里</div></div>';
+  } else {
+    body = '<div class="notif-wrap">' + n.list.map(function(it){
+      var unreadCls = (it.read || it.type === 'dm') ? '' : ' unread';  // v3.7.0 口径调整：dm 行未读不计入通知角标，列表层也不高亮（避免与私信角标重复）
+      return '<div class="notify-row' + unreadCls + '" data-action="notif-row"' +
+        ' data-id="' + esc(it.id) + '"' +
+        ' data-type="' + esc(it.type) + '"' +
+        ' data-post-id="' + esc(it.postId || '') + '"' +
+        ' data-email="' + esc(it.by || '') + '"' +
+        '>' +
+        '<div class="ni">' + notifIcon(it.type) + '</div>' +
+        '<div class="nt"><b>' + esc(it.byNickname || '用户') + '</b> ' + esc(it.text || '') +
+          '<div class="nr-t">' + esc(fmtHM(it.ts)) + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
+  return head + body;
+}
+function loadNotif(){
+  if (!Auth.token) return;
+  view.notif.loading = true;
+  postJSON('kaohe-api/notifications.php?action=list', { token: Auth.token, limit: 50 })
+    .then(function(res){
+      view.notif.loading = false;
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        view.notif.list = res.json.items || [];
+        view.notif.listLoaded = true;
+        render();
+      } else {
+        toast(apiMsg(res), 'warn');
+        render();
+      }
+    }).catch(function(){
+      view.notif.loading = false;
+      toast('网络错误', 'warn');
+      render();
+    });
+}
+function markNotifRead(id){
+  if (!id) return;
+  postJSON('kaohe-api/notifications.php?action=mark_read', { token: Auth.token, id: id })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        for (var i=0;i<view.notif.list.length;i++){
+          if (view.notif.list[i].id === id){ view.notif.list[i].read = true; break; }
+        }
+        refreshUnreadBadge();
+      }
+    }).catch(function(){});
+}
+function markAllNotifRead(){
+  postJSON('kaohe-api/notifications.php?action=mark_read', { token: Auth.token })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        for (var i=0;i<view.notif.list.length;i++) view.notif.list[i].read = true;
+        toast('已全部标记为已读', 'good');
+        render();
+        refreshUnreadBadge();
+      } else {
+        toast(apiMsg(res), 'warn');
+      }
+    }).catch(function(){ toast('网络错误', 'warn'); });
+}
+function handleNotifRow(el){
+  var id = el.getAttribute('data-id');
+  var type = el.getAttribute('data-type');
+  var postId = el.getAttribute('data-post-id');
+  var email = el.getAttribute('data-email');
+  // 先标已读（不阻塞跳转）
+  if (id) markNotifRead(id);
+  if (type === 'like' || type === 'mention' || type === 'reply' || type === 'repost' || type === 'quote' || type === 'comment'){
+    if (postId){
+      openPostDetail(postId);  // 内部会切到 circle tab
+    }
+  } else if (type === 'follow'){
+    if (email) openUserProfile(email);
+  } else if (type === 'dm'){
+    if (postId){
+      view.msgsSubTab = 'dm';
+      view.tab = 'msgs';
+      render();
+      // 打开会话（postId 即 conversation_id）
+      setTimeout(function(){ openConversation(postId); loadConversations(); }, 30);
+    }
+  }
 }
 
 /* ================= MVP-5 动态核心 ================= */
@@ -2677,6 +3176,7 @@ function renderUserProfile(){
   } else {
     actionsHtml = '<div class="up-actions">' +
       upFollowBtnHtml(rel, email) +
+      '<button class="up-btn" style="flex:none;max-width:none;padding:10px 14px;background:var(--primary-soft);color:var(--primary)" data-action="open-dm-from-profile" data-email="' + esc(email) + '" title="发私信">📩 私信</button>' +
       '<div class="up-more" data-action="open-user-menu" data-email="' + esc(email) + '" title="更多">···</div>' +
     '</div>';
   }
@@ -3982,6 +4482,19 @@ function handleAction(el, e){
     case 'ul-loadmore': loadUserList(false); break;
     case 'open-bio-edit': openBioModal(); break;
     case 'pf-save-bio': saveBio(); break;
+    /* ==== v3.7.0 私信与通知 ==== */
+    case 'msgs-sub-tab':
+      view.msgsSubTab = el.getAttribute('data-st') === 'notif' ? 'notif' : 'dm';
+      render();
+      if (view.msgsSubTab === 'dm') loadConversations();
+      else loadNotif();
+      break;
+    case 'open-conv': openConversation(el.getAttribute('data-id')); break;
+    case 'close-conv': closeConversation(); break;
+    case 'dm-send': sendDm(); break;
+    case 'open-dm-from-profile': openOrCreateDm(el.getAttribute('data-email')); break;
+    case 'notif-mark-all': markAllNotifRead(); break;
+    case 'notif-row': handleNotifRow(el); break;
     case 'close-modal':
       if (!canCloseModal()) break;  // 弹窗刚打开 350ms 内的关闭点击忽略（防连点/误触）
       closeModal(); break;
@@ -4034,6 +4547,15 @@ document.addEventListener('input', function(e){
     if (hEl2){
       var val = isNaN(u)?0:u;
       hEl2.innerHTML = '直接从余额中扣除对应分钟。当前输入 <b>'+val+' 分钟</b>。'+(val>state.account.balanceMin?'<span style="color:var(--danger)">余额不足！</span>':'');
+    }
+  }
+});
+/* v3.7.0：私信输入框 Enter 发送，Shift+Enter 换行 */
+document.addEventListener('keydown', function(e){
+  if (e.target && e.target.id === 'chat-input-ta'){
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing){
+      e.preventDefault();
+      sendDm();
     }
   }
 });
@@ -4117,6 +4639,9 @@ function bootApp(){
       var tb0 = document.getElementById('tabbar'); if (tb0) tb0.style.display = '';
       renderUserChip();
       bootApp();
+      /* v3.7.0：登录后立即拉一次未读徽标，并每 30s 轮询 */
+      refreshUnreadBadge();
+      setInterval(refreshUnreadBadge, 30000);
     }).catch(function(){
       /* 网络不可达：保留 token，引导用户稍后重试 */
       toast('无法连接服务器，请检查网络后刷新页面', 'warn');
