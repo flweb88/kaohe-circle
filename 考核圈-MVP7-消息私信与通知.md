@@ -6,7 +6,7 @@
 - **前置依赖**：[MVP-5 动态核心](./考核圈-MVP5-动态核心.md)（v3.5.5 已上线：回复帖/纯转发/引用/Thread 对齐，通知类型 mention/like/reply/repost/quote/follow）、[MVP-6 用户关系网](./考核圈-MVP6-用户关系网.md)（v3.6.0：关注/Block/Mute 数据与能力判断）
 - **对齐规格**：X 用户关系/消息/通知工程规格——[规格文档/X用户关系网消息私信通知结构逻辑.md](./规格文档/X用户关系网消息私信通知结构逻辑.md)（本文 §27-38 消息、§22-26 通知、§59-65 数据、§68 事件语义引用其节号）
 - **后续衔接**：[MVP-8 增强打磨](./考核圈-MVP8-增强打磨.md)
-- **状态**：📋 待排期（未开工，无代码产出）
+- **状态**：✅ 已上线（2026-10-01，源码 `c5fcb83`，web 库 `5613faa`）
 
 ---
 
@@ -70,6 +70,8 @@
 4. 本地删除消息后对方仍可见（若纳入删除）
 5. 与 MVP-5/6 联动（从帖子/用户页发起私信）
 6. 三端布局正常；版本 v3.7.0；git 双库可回滚；**复核通过后上线（2026-10-01 起用户授权）**
+
+**上线冒烟结论（2026-10-01，测试号 v370a/v370b）**：双人私信链 open_or_create→send→messages(mine=false)→mark_read→unread(dm=0)→conversations(peer/can_send) 全通；通知中心 list 含 type=dm 行且 conversation_id 正确、unread 返回 {notify, dm} 两值独立（notify 排除 type=dm）、mark_read 全读后归 0；Block 阻断实测 B block A 后 A send 返回 **403 {err:"blocked"}**，A messages 历史仍可读，B unblock 后恢复；回归 feed 200 / user_profile 200 通过。只读校验 v3.7.0 生效、dms/notifications 无 token 401 鉴权闸正常。数据文件 kaohe-data/dms.php 由 PHP 首次写入自动创建（http:http/0664/守卫头）。
 
 ## 7. 维护与更新规则
 

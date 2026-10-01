@@ -168,7 +168,7 @@
 
 - 所有 `.php` 数据文件均以 `<?php http_response_code(403); exit; ?>\n` 开头（common.php GUARD 常量，db_write_json 自动追加）。
 - 属主 `http:http`，权限 0664（db_write_json 里 chmod 0664）。
-- 部署：deploy.sh 只推 kaohe-api/*.php 与 kaohe.html，**不推 kaohe-data/**。新建的 dms.php 首次上线需手动 `ssh flweb@192.168.50.2 'cat > /var/services/web/kaohe-data/dms.php' < kaohe-data/dms.php` 并 `chown http:http`。
+- 部署：deploy.sh 只推 kaohe-api/*.php 与 kaohe.html，**不推 kaohe-data/**。**实际上线方式（2026-10-01）**：因 NAS `kaohe-data/` 属主 `http:http` 775、部署账号 flweb 无写权限，无法手动 `cat >` 推送；改为**由 PHP（http 身份）在首次写动作时经 db_write_json 自动创建** dms.php——自动带 GUARD 守卫头、chmod 0664、属主 http:http，与现有 users.php/posts.php/notify.php 产生方式一致。已线上核验：`-rw-rw-r-- http http` + `<?php http_response_code(403); exit; ?>` 头。源码库 `kaohe-data/dms.php` 仅作 schema 骨架参考（-f 入库）。
 - **无需迁移脚本**：notify.php 结构不变；dms.php 全新空文件（默认值 `{conversations:[],conversation_members:[],messages:[],message_user_state:[]}`）。
 
 ---
@@ -266,7 +266,7 @@ mark_read 跨 dms.php + notify.php，用 `db_transact_multi([DMS_FILE, NOTIFY_FI
 | action | 请求 | 成功响应 | 说明 |
 |---|---|---|---|
 | `list` | `{token, after_id?, limit?, type?}` | `{"ok":true,"items":[{id,type,by,postId,text,ts,read,byNickname,byAvatar,conversation_id}],"has_more":bool}` | 按 ts 倒序；type 可选过滤；conversation_id = (type==='dm' ? postId : null)；after_id 游标；加载时顺带惰性清理 ts>90 天前的条目（写操作才清，list 只读不清） |
-| `unread` | `{token}` | `{"ok":true,"notify":2,"dm":1}` | **badge 数据源**：notify=notify.php 里 to=me 且 read=false 条数；dm=dms.php 里我的未读私信总数（复用 §2.1 算法）。跨两文件读，单文件 db_read_json 各读一次即可（无写） |
+| `unread` | `{token}` | `{"ok":true,"notify":2,"dm":1}` | **badge 数据源**：notify=notify.php 里 to=me 且 read=false **且 type!=='dm'** 条数（**v3.7.0 口径：notify 排除 type=dm，dm 未读由 dm 字段按会话算法统计，避免双计数**）；dm=dms.php 里我的未读私信总数（复用 §2.1 算法）。跨两文件读，单文件 db_read_json 各读一次即可（无写） |
 | `mark_read` | `{token, id?}` | `{"ok":true}` | id 非空 → 单条已读（校验 to=me）；id 空/缺省/"all" → 全部已读。顺带惰性清理 90 天前条目 |
 
 错误码对齐：401 auth / err:busy。list 空返回 `{ok:true,items:[],has_more:false}`。
@@ -333,6 +333,7 @@ mark_read 跨 dms.php + notify.php，用 `db_transact_multi([DMS_FILE, NOTIFY_FI
   - `<span class="badge badge-notif" id="badge-notif" style="display:none">0</span>`（通知未读，红点/橙点）
   - 计数为 0 时 badge 隐藏（display:none）；>0 时显示数字（>99 显示 "99+"）。
 - **数据来源**：登录后 / 每 30s 轮询 / 切 tab 时调 `notifications.php?action=unread`，拿 `{notify, dm}` 两值分别填。**不混 total**。
+- **dm 行与通知角标解耦（v3.7.0 口径）**：通知中心列表里的 type=dm 行**不计入通知角标 badge-notif**（其未读由 badge-dm 按会话算法统计）、**不对 dm 行做未读高亮**（未读高亮仅用于社交类通知 like/mention/reply/repost/quote/follow）。
 
 ### 4.6 三端断点布局
 
@@ -376,7 +377,7 @@ mark_read 跨 dms.php + notify.php，用 `db_transact_multi([DMS_FILE, NOTIFY_FI
 | T1 | §6.1 双人互发 | A、B 已注册登录 | ① A 调 `dms.php?action=open_or_create {email:B}` → 拿 conversation_id=CID1；② A 调 `send {conversation_id:CID1, body:"你好A→B"}`；③ B 调 `conversations` | A 创建返回 `{ok:true, conversation_id:CID1, created:true}`；B 的会话列表出现 CID1，peer=A | items[0].conversation_id=CID1, peer.email=A, last_message.body="你好A→B" |
 | T2 | §6.1 会话列表未读数 | 同 T1 后 B 未读 | ① B 调 `unread`；② B 调 `conversations` | B 的 dm 未读数=1；会话列表 unread_count=1 | `{ok:true,dm:1}`；items[0].unread_count=1 |
 | T3 | §6.1 已读标记 | 同 T2 后 | ① B 调 `mark_read {conversation_id:CID1}`；② B 再调 `unread` | B 的 dm 未读数归 0；会话 unread_count=0；notify.php 里 type=dm/postId=CID1 的未读通知被置 read=true | `{ok:true}`；再查 `{dm:0}` |
-| T4 | §6.1 未读分离 | A、B、C 各自有未读 | ① B 收到 A 的私信（dm 未读+1）；② B 被 C 点赞（notify 未读+1）；③ B 调 `notifications.php?action=unread` | 两个计数独立：dm=1, notify=1，不混 total | `{ok:true,notify:1,dm:1}`；前端两个红点分别亮 |
+| T4 | §6.1 未读分离 | A、B、C 各自有未读 | ① B 收到 A 的私信（dm 未读+1）；② B 被 C 点赞（notify 未读+1）；③ B 调 `notifications.php?action=unread` | 两个计数独立：dm=1, notify=1，不混 total | `{ok:true,notify:1,dm:1}`（**notify 排除 type=dm 口径：那 1 条 dm 通知不计入 notify，notify=1 来自 C 的点赞**）；前端两个红点分别亮 |
 | T5 | §6.2 通知各类触发 | A、B、C | ① B 点赞 A 的帖子；② B 在 A 帖下回复；③ B 转发 A 帖；④ B 引用 A 帖；⑤ B 关注 A；⑥ B @A | A 的通知列表含 5 条（like/reply/repost/quote/follow/mention），type 字段正确；同一互动只产生一条（重复点赞不新增） | list items 长度正确，type 枚举正确；重复 like 不新增 |
 | T6 | §6.2 同一互动一条通知 | A 对 B 同一点赞 | A 连续两次 `like` 同一帖 | B 的 notify.php 里只新增一条 type=like 未读 | 第二次 add_notify 命中去重（social.php:95-100），不 append |
 | T7 | §6.3 Block 后无通知 | A 拉黑 B | ① A block B；② B 点赞 A 的帖子；③ B 给 A 发私信 | ② B 的 like 请求 403；③ B 的 send 请求 403；A 的 notify.php 无新增 | ② `{ok:false,err:"blocked",msg:"对方已限制互动"}` HTTP403；③ 同；A unread 不变 |
