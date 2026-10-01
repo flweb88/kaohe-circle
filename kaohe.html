@@ -234,8 +234,6 @@ main{margin-top:18px}
 .adm-user .anm{font-weight:600;font-size:13.5px}
 .adm-user .aem{font-size:12px;color:var(--muted);word-break:break-all}
 .adm-user .abt{font-size:12px;padding:4px 9px;border-radius:8px}
-footer .fb-link{font-size:11px;color:var(--primary);font-weight:600;margin-left:6px}
-footer .fb-link:hover{text-decoration:underline}
 /* 响应式 */
 @media(max-width:640px){
   body{font-size:16px}
@@ -755,7 +753,6 @@ footer .fb-link:hover{text-decoration:underline}
 <div id="auth-root" style="display:none"></div>
 <div id="app">
   <main id="main"></main>
-  <footer>考核小管家 v3.8.2 · 考核圈社交版<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
 </div>
 <nav class="tabbar" id="tabbar">
   <button class="tb" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>首页</button>
@@ -1145,7 +1142,7 @@ function renderAuth(){
   }
   document.getElementById('auth-root').innerHTML =
     '<div class="rk-wrap">' + brandHtml + body +
-      '<div class="rk-ver">考核圈 · 社交版第一页 v3.8.2</div>' +
+      '<div class="rk-ver">考核圈 · 社交版第一页 v3.8.3</div>' +
     '</div>';
   if (authMode === 'register'){
     refreshCaptcha();
@@ -1371,6 +1368,40 @@ function doLogout(){
   toast('已退出登录');
   showAuthView();
 }
+/* v3.8.3：注销账号（auth.php?action=resign，永久删除本账号全部数据） */
+function resignOpen(){
+  var u = Auth.user || {};
+  if (u.role === 'admin'){
+    toast('请先卸任管理员身份（若为最后一位管理员请先委任他人）', 'warn');
+    return;
+  }
+  openModal(
+    '<h3>注销账号</h3>' +
+    '<p class="sub">本账号：' + esc(u.email || '') + '</p>' +
+    '<p style="font-size:13.5px;line-height:1.7;color:var(--text)">注销后，本账号下的打卡数据、动态、评论、关注、私信、通知、头像与媒体将被<b style="color:var(--danger)">永久删除且不可恢复</b>（删除前自动备份）。此操作无法撤销。</p>' +
+    '<div class="fld"><label>确认操作</label><input type="text" id="confirm-del-inp" placeholder="输入 删除 以确认"><div class="hint">输入「删除」后才能点击确认</div></div>' +
+    '<div class="modal-ft"><button class="btn btn-ghost" data-action="close-modal">取消</button>' +
+    '<button class="btn btn-danger" id="confirm-del-ok" data-action="resign-ok" disabled>确认注销</button></div>'
+  );
+}
+function resignOk(){
+  var inp = document.getElementById('confirm-del-inp');
+  if (!inp || inp.value !== '删除'){ toast('请先输入「删除」以确认', 'warn'); return; }
+  postJSON('kaohe-api/auth.php?action=resign', { token:Auth.token, confirm:'删除' })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        /* 账号已注销：本地登录态清理（同 logout），回登录页 */
+        Auth.clear();
+        state = null;
+        authMode = 'login'; forgotStep = 1;
+        toast('账号已注销', 'good');
+        showAuthView();
+      } else {
+        toast(apiMsg(res), 'warn');
+      }
+    }).catch(function(){ toast('网络错误，请重试', 'warn'); });
+}
 function renderUserChip(){
   var box = document.getElementById('user-chip');
   if (!box) return;
@@ -1520,18 +1551,25 @@ function renderAdminUsers(list){
     var banBtn = isMe ? '' : (u.banned
       ? '<button type="button" class="mgmt-btn btn-ghost abt" data-action="adm-ban" data-email="' + esc(u.email) + '" data-banned="false">解封</button>'
       : '<button type="button" class="mgmt-btn btn-ghost abt" data-action="adm-ban" data-email="' + esc(u.email) + '" data-banned="true">封禁</button>');
-    /* 设为/取消管理员：本人行不显示（防自降级，后端也拒绝） */
-    var roleBtn = '';
-    if (!isMe){
-      roleBtn = u.role === 'admin'
-        ? '<button type="button" class="mgmt-btn btn-ghost abt" style="color:var(--muted)" data-action="adm-set-role" data-email="' + esc(u.email) + '" data-role="user">取消管理员</button>'
-        : '<button type="button" class="mgmt-btn btn-ghost abt" style="color:var(--primary)" data-action="adm-set-role" data-email="' + esc(u.email) + '" data-role="admin">设为管理员</button>';
-    }
+    /* v3.8.3 修订：管理员身份只能本人卸任，不再提供「取消管理员」/互降入口 */
+    var isAdminRow = (u.role === 'admin');
+    /* 委任管理员（transfer_admin，纯提升，调用者不降级）—— 仅普通用户行渲染 */
+    var transferBtn = (!isMe && !isAdminRow)
+      ? '<button type="button" class="mgmt-btn btn-ghost abt" style="color:var(--primary)" data-action="adm-transfer" data-email="' + esc(u.email) + '">设为管理员</button>'
+      : '';
+    /* 删除账号（del_user）—— 仅普通用户行渲染；admin 行（含其他管理员）一律不渲染 */
+    var delBtn = (!isMe && !isAdminRow)
+      ? '<button type="button" class="mgmt-btn btn-ghost abt" style="color:var(--danger)" data-action="adm-del-user" data-email="' + esc(u.email) + '">删除</button>'
+      : '';
+    /* 卸任管理员（demote_self）—— 仅本人 admin 行渲染 */
+    var demoteBtn = (isMe && isAdminRow)
+      ? '<button type="button" class="mgmt-btn btn-ghost abt" style="color:var(--muted)" data-action="adm-demote-self">卸任管理员</button>'
+      : '';
     return '<div class="adm-user">' + avTag +
       '<div class="ainfo"><div class="anm">' + esc(u.nickname || '小笨猪') + ' ' + badge + banBadge + '</div>' +
       '<div class="aem">' + esc(u.email) + '</div></div>' +
       '<button type="button" class="mgmt-btn btn-ghost abt" data-action="adm-reset-pwd" data-email="' + esc(u.email) + '">重置密码</button>' +
-      roleBtn + banBtn + '</div>';
+      transferBtn + banBtn + delBtn + demoteBtn + '</div>';
   }).join('');
   var box = document.getElementById('admin-body');
   if (box) box.innerHTML =
@@ -1587,6 +1625,81 @@ function adminSetRole(email, role){
       if (apiFail(res)) return;
       if (res.json && res.json.ok){ toast(verb + '成功', 'good'); openAdminModal(); }
       else toast(apiMsg(res), 'warn');
+    }).catch(function(){ toast('网络错误，请重试', 'warn'); });
+}
+/* v3.8.3：删除账号（管理员删除其他账号，删除前自动备份） */
+function adminDelUserModal(email){
+  openModal(
+    '<h3>删除账号</h3>' +
+    '<p class="sub">目标：' + esc(email) + '</p>' +
+    '<p style="font-size:13.5px;line-height:1.7;color:var(--text)">该账号下的打卡数据、动态、评论、关注、私信、通知、头像与媒体将被永久删除（删除前自动备份，可恢复）。</p>' +
+    '<div class="fld"><label>确认操作</label><input type="text" id="confirm-del-inp" placeholder="输入 删除 以确认"><div class="hint">输入「删除」后才能点击确认</div></div>' +
+    '<div class="modal-ft"><button class="btn btn-ghost" data-action="close-modal">取消</button>' +
+    '<button class="btn btn-danger" id="confirm-del-ok" data-action="adm-del-user-ok" data-email="' + esc(email) + '" disabled>确认删除</button></div>'
+  );
+}
+function adminDelUserOk(email){
+  var inp = document.getElementById('confirm-del-inp');
+  if (!inp || inp.value !== '删除'){ toast('请先输入「删除」以确认', 'warn'); return; }
+  postJSON('kaohe-api/admin.php?action=del_user', { token:Auth.token, email:email, confirm:'删除' })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        toast('账号已删除', 'good');
+        closeModal();
+        openAdminModal();  /* 重新拉 list 渲染 */
+      } else {
+        toast(apiMsg(res), 'warn');
+      }
+    }).catch(function(){ toast('网络错误，请重试', 'warn'); });
+}
+/* v3.8.3：委任管理员（transfer_admin，调用者本人降级为普通用户） */
+function adminTransferModal(email){
+  openModal(
+    '<h3>设为管理员</h3>' +
+    '<p style="font-size:13.5px;line-height:1.7;color:var(--text)">将 <b>' + esc(email) + '</b> 设为管理员？<br>委任后系统将多一名管理员，你仍为管理员。</p>' +
+    '<div class="modal-ft"><button class="btn btn-ghost" data-action="close-modal">取消</button>' +
+    '<button class="btn btn-primary" data-action="adm-transfer-ok" data-email="' + esc(email) + '">确认设为管理员</button></div>'
+  );
+}
+function adminTransferOk(email){
+  postJSON('kaohe-api/admin.php?action=transfer_admin', { token:Auth.token, email:email })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        toast(res.json.msg || '已设为管理员', 'good');
+        closeModal();
+        if (!res.json.noop){ openAdminModal(); }  /* 实际变更后刷新列表以显示新 admin 徽章 */
+      } else {
+        toast(apiMsg(res), 'warn');
+      }
+    }).catch(function(){ toast('网络错误，请重试', 'warn'); });
+}
+/* v3.8.3 修订：卸任管理员（demote_self，仅本人可执行；最后一位 admin 由后端拒绝） */
+function adminDemoteSelfModal(){
+  openModal(
+    '<h3>卸任管理员</h3>' +
+    '<p style="font-size:13.5px;line-height:1.7;color:var(--text)">卸任管理员身份？<br>卸任后你将失去管理员面板。若你是系统中最后一位管理员，需先委任他人。</p>' +
+    '<div class="modal-ft"><button class="btn btn-ghost" data-action="close-modal">取消</button>' +
+    '<button class="btn btn-primary" data-action="adm-demote-self-ok">确认卸任</button></div>'
+  );
+}
+function adminDemoteSelfOk(){
+  postJSON('kaohe-api/admin.php?action=demote_self', { token:Auth.token })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        if (Auth.user){
+          Auth.user.role = 'user';
+          try{ localStorage.setItem('kaohe_user', JSON.stringify(Auth.user)); }catch(e){}
+        }
+        toast(res.json.msg || '你已卸任管理员身份', 'good');
+        closeModal();
+        renderUserChip();
+        render();
+      } else {
+        toast(apiMsg(res), 'warn');
+      }
     }).catch(function(){ toast('网络错误，请重试', 'warn'); });
 }
 function adminSaveInvite(){
@@ -2131,6 +2244,11 @@ function renderMe(){
       rows += '<div class="mm-row" data-action="open-admin"><span class="mm-ico">' + icoAdmin + '</span>' +
         '<div class="mm-body"><div class="mm-t">管理员面板</div><div class="mm-s">账户管理 / 邀请码 / 系统配置</div></div>' +
         '<span class="mm-arrow">' + arrowSvg + '</span></div>';
+      /* v3.8.3 修订：卸任管理员入口（仅本人 admin 可见） */
+      var icoDemote = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>';
+      rows += '<div class="mm-row" data-action="demote-self-open"><span class="mm-ico">' + icoDemote + '</span>' +
+        '<div class="mm-body"><div class="mm-t">卸任管理员</div><div class="mm-s">失去管理员面板，可在管理员面板重新委任</div></div>' +
+        '<span class="mm-arrow">' + arrowSvg + '</span></div>';
     }
     var icoFriends = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
     rows += '<div class="mm-row" data-action="open-user-list" data-mode="following"><span class="mm-ico">' + icoFriends + '</span>' +
@@ -2139,10 +2257,20 @@ function renderMe(){
     rows += '<div class="mm-row" data-action="open-user-list" data-mode="followers"><span class="mm-ico">' + icoFriends + '</span>' +
       '<div class="mm-body"><div class="mm-t">我的粉丝</div><div class="mm-s">关注我的人</div></div>' +
       '<span class="mm-arrow">' + arrowSvg + '</span></div>';
+    /* v3.8.3：注销账号（self resign）—— 置于退出登录附近，danger 样式 */
+    var icoResign = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+    var isAdminMe = (u.role === 'admin');
+    var resignSub = isAdminMe
+      ? '需先卸任管理员后方可注销'
+      : '永久删除本账号全部数据（删除前自动备份）';
+    rows += '<div class="mm-row danger" data-action="resign-open"><span class="mm-ico">' + icoResign + '</span>' +
+      '<div class="mm-body"><div class="mm-t">注销账号</div><div class="mm-s">' + resignSub + '</div></div>' +
+      '<span class="mm-arrow">' + arrowSvg + '</span></div>';
     rows += '<div class="mm-row danger" data-action="logout"><span class="mm-ico">' + icoLogout + '</span>' +
       '<div class="mm-body"><div class="mm-t">退出登录</div><div class="mm-s">退出当前账号并返回登录页</div></div>' +
       '<span class="mm-arrow">' + arrowSvg + '</span></div>';
-    body = '<div class="view-title">账号设置</div><div class="me-menu">' + rows + '</div>';
+    body = '<div class="view-title">账号设置</div><div class="me-menu">' + rows + '</div>' +
+      '<footer>考核小管家 v3.8.3 · 考核圈社交版</footer>';
   }
   return card + tabs + body;
 }
@@ -4455,6 +4583,17 @@ function handleAction(el, e){
     case 'adm-set-role': adminSetRole(el.getAttribute('data-email'), el.getAttribute('data-role')); break;
     case 'adm-save-invite': adminSaveInvite(); break;
     case 'adm-save-config': adminSaveConfig(); break;
+    /* v3.8.3：删除账号 / 委任管理员 */
+    case 'adm-del-user': adminDelUserModal(el.getAttribute('data-email')); break;
+    case 'adm-del-user-ok': adminDelUserOk(el.getAttribute('data-email')); break;
+    case 'adm-transfer': adminTransferModal(el.getAttribute('data-email')); break;
+    case 'adm-transfer-ok': adminTransferOk(el.getAttribute('data-email')); break;
+    case 'adm-demote-self': adminDemoteSelfModal(); break;
+    case 'adm-demote-self-ok': adminDemoteSelfOk(); break;
+    case 'demote-self-open': adminDemoteSelfModal(); break;
+    case 'demote-self-ok': adminDemoteSelfOk(); break;
+    case 'resign-open': resignOpen(); break;
+    case 'resign-ok': resignOk(); break;
     /* ---- MVP-5 动态 ---- */
     case 'open-compose': openCompose(); break;
     case 'circle-tab': view.circleTab = el.getAttribute('data-ct') || 'recommend'; render(); break;
@@ -4627,6 +4766,11 @@ document.addEventListener('input', function(e){
       var val = isNaN(u)?0:u;
       hEl2.innerHTML = '直接从余额中扣除对应分钟。当前输入 <b>'+val+' 分钟</b>。'+(val>state.account.balanceMin?'<span style="color:var(--danger)">余额不足！</span>':'');
     }
+  }
+  /* v3.8.3：删除/注销确认输入框 —— 输入「删除」才启用确认按钮 */
+  if (e.target && e.target.id === 'confirm-del-inp'){
+    var okBtn = document.getElementById('confirm-del-ok');
+    if (okBtn) okBtn.disabled = (e.target.value !== '删除');
   }
 });
 /* v3.7.0：私信输入框 Enter 发送，Shift+Enter 换行 */

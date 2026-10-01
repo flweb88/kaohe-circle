@@ -1,8 +1,9 @@
 <?php
 /* 考核小管家 v2 - 管理员
- * actions: list / reset_password / ban / invite / config / role
+ * actions: list / reset_password / ban / invite / config / role / del_user / transfer_admin / demote_self
  */
 require_once __DIR__ . '/common.php';
+require_once __DIR__ . '/account_cleanup.php';
 
 $in = req_json();
 $action = isset($_GET['action']) ? $_GET['action'] : (isset($in['action']) ? $in['action'] : (isset($_POST['action']) ? $_POST['action'] : ''));
@@ -62,9 +63,110 @@ if ($action === 'role') {
     if (!isset($users['users'][$target])) {
         json_out(['ok' => false, 'err' => 'notfound', 'msg' => '目标用户不存在']);
     }
+    // v3.8.3：取消管理员身份只能由本人在 demote_self 卸任；role action 一律拒绝把 admin 降为 user
+    if ($newRole === 'user' && ($users['users'][$target]['role'] ?? 'user') === 'admin') {
+        json_out(['ok' => false, 'err' => 'self_only', 'msg' => '管理员身份只能由管理员本人卸任']);
+    }
     $users['users'][$target]['role'] = $newRole;
     save_users($users);
     json_out(['ok' => true]);
+}
+
+// v3.8.3：管理员删除账号（全量清理 + 备份）
+if ($action === 'del_user') {
+    $target = strtolower(trim((string)($in['email'] ?? '')));
+    $adminEmail = strtolower(trim((string)$admin['email']));
+    if (!isset($in['confirm']) || (string)$in['confirm'] !== '删除') {
+        json_out(['ok' => false, 'err' => 'confirm', 'msg' => '需输入确认文案“删除”']);
+    }
+    if ($target === '') {
+        json_out(['ok' => false, 'err' => 'notfound', 'msg' => '目标用户不存在']);
+    }
+    if ($target === $adminEmail) {
+        json_out(['ok' => false, 'err' => 'self', 'msg' => '不能删除管理员自己']);
+    }
+    $users = load_users();
+    if (!isset($users['users'][$target])) {
+        json_out(['ok' => false, 'err' => 'notfound', 'msg' => '目标用户不存在']);
+    }
+    // 不能删除管理员：管理员须先由本人卸任（非 admin 目标不受影响）
+    if (($users['users'][$target]['role'] ?? 'user') === 'admin') {
+        json_out(['ok' => false, 'err' => 'admin_target', 'msg' => '不能删除管理员，管理员须先由本人卸任']);
+    }
+    try {
+        $backupName = purge_user($target);
+    } catch (\Throwable $e) {
+        error_log('[kaohe] purge_user failed: ' . $e->getMessage());
+        json_out(['ok' => false, 'err' => 'io', 'msg' => '账号删除失败，请重试'], 500);
+    }
+    json_out(['ok' => true, 'msg' => '账号已删除（数据已备份）', 'backup' => $backupName]);
+}
+
+// v3.8.3：委任管理员（纯提升：只加人不减人，原 admin 不因委任自动降级）
+if ($action === 'transfer_admin') {
+    $target = strtolower(trim((string)($in['email'] ?? '')));
+    if ($target === '') {
+        json_out(['ok' => false, 'err' => 'notfound', 'msg' => '目标用户不存在']);
+    }
+    $users = load_users();
+    if (!isset($users['users'][$target])) {
+        json_out(['ok' => false, 'err' => 'notfound', 'msg' => '目标用户不存在']);
+    }
+    if (($users['users'][$target]['role'] ?? 'user') === 'admin') {
+        json_out(['ok' => true, 'noop' => true, 'msg' => '目标已是管理员']);
+    }
+    // 事务内复查：目标仍存在且仍非 admin → 仅提升目标为 admin（调用者保持 admin）
+    $done = false;
+    $okTx = db_transact_json(USERS_FILE, ['users' => [], 'invite' => '', 'reg_log' => [], 'migrated' => false], function($u) use ($target, &$done) {
+        if (!isset($u['users'][$target]) || ($u['users'][$target]['role'] ?? 'user') === 'admin') return null;
+        $u['users'][$target]['role'] = 'admin';
+        $done = true;
+        return $u;
+    });
+    if ($okTx === false) {
+        json_out(['ok' => false, 'err' => 'busy', 'msg' => '系统繁忙，请稍后重试'], 500);
+    }
+    if (!$done) {
+        json_out(['ok' => true, 'noop' => true, 'msg' => '目标已是管理员']);
+    }
+    json_out(['ok' => true, 'msg' => '已将 ' . $target . ' 设为管理员', 'target' => $target]);
+}
+
+// v3.8.3：本人卸任管理员（仅本人可卸任自己；最后一位 admin 拒绝）
+if ($action === 'demote_self') {
+    $adminEmail = strtolower(trim((string)$admin['email']));
+    $users = load_users();
+    if (!isset($users['users'][$adminEmail])) {
+        json_out(['ok' => false, 'err' => 'notfound', 'msg' => '账号不存在']);
+    }
+    // 预检查：最后一位 admin 直接拒绝（事务内再复查，并发安全）
+    $adminCount = 0;
+    foreach ($users['users'] as $uu) { if (($uu['role'] ?? 'user') === 'admin') $adminCount++; }
+    if ($adminCount <= 1) {
+        json_out(['ok' => false, 'err' => 'last_admin', 'msg' => '你是系统中最后一位管理员，请先委任他人后再卸任']);
+    }
+    // 事务内复查：仍是 admin 且系统仍 ≥2 admin → 自己置 user
+    $done = false;
+    $okTx = db_transact_json(USERS_FILE, ['users' => [], 'invite' => '', 'reg_log' => [], 'migrated' => false], function($u) use ($adminEmail, &$done) {
+        if (!isset($u['users'][$adminEmail]) || ($u['users'][$adminEmail]['role'] ?? 'user') !== 'admin') return null;
+        $cnt = 0;
+        foreach ($u['users'] as $uu) { if (($uu['role'] ?? 'user') === 'admin') $cnt++; }
+        if ($cnt <= 1) return null;
+        $u['users'][$adminEmail]['role'] = 'user';
+        $done = true;
+        return $u;
+    });
+    if ($okTx === false) {
+        json_out(['ok' => false, 'err' => 'busy', 'msg' => '系统繁忙，请稍后重试'], 500);
+    }
+    if (!$done) {
+        $u2 = load_users();
+        if (($u2['users'][$adminEmail]['role'] ?? 'user') !== 'admin') {
+            json_out(['ok' => true, 'noop' => true, 'msg' => '你已是普通用户']);
+        }
+        json_out(['ok' => false, 'err' => 'last_admin', 'msg' => '你是系统中最后一位管理员，请先委任他人后再卸任']);
+    }
+    json_out(['ok' => true, 'msg' => '你已卸任管理员身份']);
 }
 
 if ($action === 'invite') {

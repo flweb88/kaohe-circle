@@ -1,8 +1,9 @@
 <?php
 /* 考核小管家 v2 - 认证
- * actions: captcha / register / login / logout / check
+ * actions: captcha / register / login / logout / check / resign
  */
 require_once __DIR__ . '/common.php';
+require_once __DIR__ . '/account_cleanup.php';
 
 $in = req_json();
 $action = isset($_GET['action']) ? $_GET['action'] : (isset($in['action']) ? $in['action'] : (isset($_POST['action']) ? $_POST['action'] : ''));
@@ -196,6 +197,25 @@ if ($action === 'logout') {
 if ($action === 'check') {
     $u = require_login($token);
     json_out(['ok' => true, 'user' => public_user($u)]);
+}
+
+// v3.8.3：本人注销账号（全量清理 + 备份；admin 须先本人卸任）
+if ($action === 'resign') {
+    $me = require_login($token);   // 校验失败 401
+    $meEmail = strtolower(trim((string)$me['email']));
+    if (!isset($in['confirm']) || (string)$in['confirm'] !== '删除') {
+        json_out(['ok' => false, 'err' => 'confirm', 'msg' => '需输入确认文案“删除”']);
+    }
+    if (($me['role'] ?? 'user') === 'admin') {
+        json_out(['ok' => false, 'err' => 'admin_first', 'msg' => '管理员请先卸任管理员身份后再注销（若为最后一位管理员请先委任他人）']);
+    }
+    try {
+        purge_user($meEmail);
+    } catch (\Throwable $e) {
+        error_log('[kaohe] purge_user(resign) failed: ' . $e->getMessage());
+        json_out(['ok' => false, 'err' => 'io', 'msg' => '账号注销失败，请重试'], 500);
+    }
+    json_out(['ok' => true, 'msg' => '账号已注销']);
 }
 
 json_out(['ok' => false, 'err' => 'action', 'msg' => '未知操作']);
