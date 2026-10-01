@@ -1,18 +1,27 @@
 <?php
-/* 考核小管家 v3.5.5 - 考核圈（社交动态）· X 帖文结构对齐
+/* 考核小管家 v3.6.0 - 考核圈（社交动态）· X 帖文结构对齐 + 用户关系网叠加
  * actions: staff_card(无鉴权) / feed / post / del / like / unlike / comment / repost / unrepost /
  *          bookmark / unbookmark / follow / unfollow / following / followers / posts_of /
  *          search_users / score_cards / notify / notify_read / unread /
  *          reply_settings / hide_reply / unhide_reply /
- *          comment_like / comment_unlike / comment_bookmark / comment_unbookmark / comment_repost
+ *          comment_like / comment_unlike / comment_bookmark / comment_unbookmark / comment_repost /
+ *          user_profile / remove_follower
  * 约定：POST + JSON body，action 走 query string；除 staff_card 外一律 require_login。
  * 数据文件（kaohe-data/，守卫头+JSON，社交数据不进每用户文件）：
  *   posts.php {items:[Post], reqs:{client_req_id:postId}}   // v3.5.5：Post 统一原子（普通/回复/引用）
  *   social.php {likes:[],comments:[],reposts:[],bookmarks:[],comment_likes:[],comment_bookmarks:[]}
  *   follows.php {<follower>:[<followee>...]}
+ *   blocks.php {<拉黑者>:[<被拉黑者>...]}   // v3.6.0：拉黑边（map，与 follows 同形态；写入在 blocks.php）
+ *   mutes.php  {<静音者>:[<被静音者>...]}   // v3.6.0：静音边（map，与 follows 同形态；写入在 mutes.php）
  *   notify.php {items:[Notify]}
  *   uploads/manifest.php {items:{<id>:{...}}}
  * 所有写动作一律走 db_transact_json（持锁读改写）。
+ * v3.6.0 关系层叠加（只读过滤 + 新互动 403，不改 posts/social schema）：
+ *   - feed(recommend+follow) / posts_of / user_profile 叠加 Block/Mute 时间线与主页可见性过滤；
+ *   - add_notify 写入侧过滤（互拉黑/被静音 → 不落库）；
+ *   - like/comment/reply/repost/quote 等新互动写入前 can_interact() 403 err:blocked（取消类不阻断）；
+ *   - follow 同 can_interact 阻断；following/followers 分页(cursor/limit)+relation 子对象；
+ *   - user_profile 聚合主页（资料+counts+relation+帖）；remove_follower 单向移除粉丝（≠Block）。
  * v3.5.5 语义：
  *   - reply_to_post_id=直接父帖；conversation_id=根帖 id（普通/引用帖=自身 id，回复帖=根帖 id）；
  *     quoted_post_id=引用对象；纯转发=reposts[] 关系（不建帖）。
@@ -79,6 +88,8 @@ function reply_policy_allows($targetPost, $meEmail) {
 // 追加一条提醒（to/by 邮箱）；已存在同 (to,type,by,postId) 则不重复落库
 function add_notify($to, $type, $by, $postId, $text) {
     if ($to === '' || $to === $by) return;
+    // v3.6.0：通知写入侧过滤——互拉黑 / 收件人静音发件人 → 不再产生通知（只读判断，不落库；不动 notify.php 读取逻辑）
+    if (has_blocked($to, $by) || blocked_by($to, $by) || is_muted($to, $by)) return;
     db_transact_json(NOTIFY_FILE, NOTIFY_DEFAULT, function($n) use ($to, $type, $by, $postId, $text) {
         if (!isset($n['items']) || !is_array($n['items'])) $n['items'] = [];
         foreach ($n['items'] as $it) {
@@ -254,6 +265,35 @@ function filter_eligible($items) {
     return $out;
 }
 
+// v3.6.0：互不可见 + 时间线过滤——排除「我拉黑的 / 拉黑我的 / 我静音的」作者的帖（只读，不写）。
+// 自己的帖不滤；blocked_by 通过反查 blocks 边（谁的 target 列表里含 me）得出，避免逐帖重复读文件。
+function filter_relations($items, $meEmail) {
+    if ($meEmail === '' || empty($items)) return $items;
+    $blocksAll = db_read_json(BLOCKS_FILE, []);
+    $mutesAll  = db_read_json(MUTES_FILE, []);
+    $myBlocks  = array_values(array_unique($blocksAll[$meEmail] ?? []));
+    $myMutes   = array_values(array_unique($mutesAll[$meEmail] ?? []));
+    $blockedBy = [];   // 拉黑了 me 的人
+    foreach (($blocksAll ?? []) as $actor => $targets) {
+        if (is_array($targets) && in_array($meEmail, $targets, true)) $blockedBy[$actor] = true;
+    }
+    return array_values(array_filter($items, function($p) use ($meEmail, $myBlocks, $myMutes, $blockedBy) {
+        $au = strtolower((string)($p['author'] ?? ''));
+        if ($au === '' || $au === $meEmail) return true;
+        if (in_array($au, $myBlocks, true)) return false;   // 我拉黑的人
+        if (isset($blockedBy[$au]))          return false;   // 拉黑我的人
+        if (in_array($au, $myMutes, true))  return false;   // 我静音的人
+        return true;
+    }));
+}
+
+// v3.6.0：新互动准入——被拉黑/互拉黑/目标不存在或封禁时，403 err:blocked（取消类动作不调用本函数）。
+function deny_if_blocked($actor, $targetEmail, $action) {
+    if (!can_interact($actor, $targetEmail, $action)) {
+        json_out(['ok' => false, 'err' => 'blocked', 'msg' => '对方已限制互动'], 403);
+    }
+}
+
 // ============================================================
 // staff_card（无鉴权）：注册页拉管理员卡片（不吐 email）
 // ============================================================
@@ -281,6 +321,7 @@ if ($action === 'feed') {
 
     $postsDoc = db_read_json(POSTS_FILE, POSTS_DEFAULT);
     $items = filter_eligible($postsDoc['items'] ?? []);
+    $items = filter_relations($items, $meEmail);   // v3.6.0：Block/Mute 时间线过滤（recommend+follow 两 tab 共用，只读）
     // v3.5.5：回复帖（reply_to_post_id≠null）不进 feed 主列表
     $items = array_values(array_filter($items, fn($p) => empty($p['reply_to_post_id'])));
 
@@ -340,6 +381,7 @@ if ($action === 'post') {
         if (!$parentPost || ($parentPost['status'] ?? 'normal') !== 'normal') {
             json_out(['ok' => false, 'err' => 'notfound', 'msg' => '要回复的动态不存在或已删除'], 404);
         }
+        deny_if_blocked($meEmail, $parentPost['author'] ?? '', 'reply');   // v3.6.0：回复前互动准入
         if (!reply_policy_allows($parentPost, $meEmail)) {
             json_out(['ok' => false, 'err' => 'forbidden_reply', 'msg' => '作者不允许你回复'], 403);
         }
@@ -350,6 +392,7 @@ if ($action === 'post') {
         if (!$quotedPost || ($quotedPost['status'] ?? 'normal') !== 'normal') {
             json_out(['ok' => false, 'err' => 'notfound', 'msg' => '引用的动态不存在或已删除'], 404);
         }
+        deny_if_blocked($meEmail, $quotedPost['author'] ?? '', 'quote');   // v3.6.0：引用前互动准入
         // 引用帖 conversation_id=自身 id（落库时填）
     }
 
@@ -514,6 +557,8 @@ if ($action === 'like' || $action === 'unlike') {
     $p = find_post_by_id($postsDoc['items'] ?? [], $id);
     if (!$p || ($p['status'] ?? 'normal') !== 'normal') json_out(['ok' => false, 'err' => 'notfound', 'msg' => '动态不存在'], 404);
 
+    if ($action === 'like') deny_if_blocked($meEmail, $p['author'] ?? '', 'like');   // v3.6.0：新点赞前互动准入（unlike 不阻断）
+
     $action === 'like' ?
         db_transact_json(SOCIAL_FILE, SOCIAL_DEFAULT, function($s) use ($id, $meEmail) {
             foreach (($s['likes'] ?? []) as $r) if (($r['post_id']??'')===$id && ($r['user']??'')===$meEmail) return null;
@@ -567,6 +612,9 @@ if ($action === 'comment') {
             $parentId = $cand['id'];
         }
     }
+    // v3.6.0：回复前互动准入——目标作者=直接父帖作者（回复的回复取被回复者，而非根帖作者）
+    $directParent = ($parentId === $id) ? $p : find_post_by_id($postsDoc['items'] ?? [], $parentId);
+    deny_if_blocked($meEmail, $directParent['author'] ?? '', 'reply');
 
     // 评论内 @提及
     $mentions = [];
@@ -636,6 +684,9 @@ if ($action === 'comment_like' || $action === 'comment_unlike' || $action === 'c
     }
     if (!$target) json_out(['ok' => false, 'err' => 'notfound', 'msg' => '评论不存在'], 404);
 
+    // v3.6.0：新互动阻断——给评论点赞前检查评论作者与我互动准入（取消点赞/收藏类动作不阻断）
+    if ($on && $isLike && $author !== null) deny_if_blocked($meEmail, $author, 'like');
+
     $arrKey = $isLike ? 'likes' : 'bookmarks';
     db_transact_json(SOCIAL_FILE, SOCIAL_DEFAULT, function($s) use ($arrKey, $cid, $meEmail, $on) {
         if ($on) {
@@ -664,6 +715,7 @@ if ($action === 'comment_repost') {
     $postsDoc = db_read_json(POSTS_FILE, POSTS_DEFAULT);
     $qc = find_post_by_id($postsDoc['items'] ?? [], $cid);
     if (!$qc || ($qc['status'] ?? 'normal') !== 'normal') json_out(['ok' => false, 'err' => 'notfound', 'msg' => '评论不存在或已删除'], 404);
+    deny_if_blocked($meEmail, $qc['author'] ?? '', 'quote');   // v3.6.0：引用评论前互动准入
 
     $mentions = [];
     if ($text !== '' && preg_match_all('/@([^\s@，。,.!！?？:：;；、]+)/u', $text, $m)) {
@@ -701,6 +753,7 @@ if ($action === 'repost') {
     $postsDoc = db_read_json(POSTS_FILE, POSTS_DEFAULT);
     $orig = find_post_by_id($postsDoc['items'] ?? [], $id);
     if (!$orig || ($orig['status'] ?? 'normal') !== 'normal') json_out(['ok' => false, 'err' => 'notfound', 'msg' => '原动态不存在或已删除'], 404);
+    deny_if_blocked($meEmail, $orig['author'] ?? '', 'repost');   // v3.6.0：纯转发前互动准入（unrepost 不阻断）
 
     db_transact_json(SOCIAL_FILE, SOCIAL_DEFAULT, function($s) use ($id, $meEmail) {
         foreach (($s['reposts'] ?? []) as $r) if (($r['post_id']??'')===$id && ($r['user']??'')===$meEmail) return null;  // 幂等
@@ -753,6 +806,9 @@ if ($action === 'follow' || $action === 'unfollow') {
     if (!isset($users['users'][$target])) json_out(['ok' => false, 'err' => 'notfound', 'msg' => '该用户不存在'], 404);
     if (!empty($users['users'][$target]['banned'])) json_out(['ok' => false, 'err' => 'banned', 'msg' => '该账号已停用']);
 
+    // v3.6.0：follow 前互动准入（unfollow 不阻断；互拉黑时双向 403）
+    if ($action === 'follow') deny_if_blocked($meEmail, $target, 'follow');
+
     $action === 'follow' ?
         db_transact_json(FOLLOWS_FILE, [], function($fl) use ($meEmail, $target) {
             if (!isset($fl[$meEmail]) || !is_array($fl[$meEmail])) $fl[$meEmail] = [];
@@ -767,28 +823,87 @@ if ($action === 'follow' || $action === 'unfollow') {
     json_out(['ok' => true]);
 }
 
-// ---------- following / followers ----------
-if ($action === 'following') {
+// ---------- following / followers（v3.6.0：分页 cursor/limit + 每项 relation 子对象；支持查看他人列表） ----------
+if ($action === 'following' || $action === 'followers') {
+    // 目标：默认查自己；传 email=查他人主页的关注/粉丝列表
+    $targetEmail = isset($in['email']) && trim((string)$in['email']) !== '' ? strtolower(trim((string)$in['email'])) : $meEmail;
     $fl = db_read_json(FOLLOWS_FILE, []);
-    $list = $fl[$meEmail] ?? [];
-    $users = load_users(); $out = [];
-    foreach ($list as $ee) { if (isset($users['users'][$ee]) && empty($users['users'][$ee]['banned'])) $out[] = public_user($users['users'][$ee]); }
-    json_out(['ok' => true, 'users' => $out]);
-}
-if ($action === 'followers') {
-    $fl = db_read_json(FOLLOWS_FILE, []);
-    $users = load_users(); $out = [];
-    foreach ($fl as $follower => $list) {
-        if (is_array($list) && in_array($meEmail, $list, true) && isset($users['users'][$follower]) && empty($users['users'][$follower]['banned'])) {
-            $out[] = public_user($users['users'][$follower]);
+    $users = load_users();
+    $blocksAll = db_read_json(BLOCKS_FILE, []);
+    $mutesAll  = db_read_json(MUTES_FILE, []);
+    $myBlocks = array_values(array_unique($blocksAll[$meEmail] ?? []));
+    $myMutes  = array_values(array_unique($mutesAll[$meEmail] ?? []));
+
+    // 权限边界：对方拉黑了我 → 看不到其关注/粉丝列表（X 语义，与 user_profile/posts_of 一致）
+    if ($targetEmail !== $meEmail && blocked_by($meEmail, $targetEmail)) {
+        json_out(['ok' => true, 'users' => [], 'nextCursor' => null]);
+    }
+
+    // 目标邮箱列表（保持既有顺序；仅保留存在且未 banned）
+    $targets = [];
+    if ($action === 'following') {
+        foreach (($fl[$targetEmail] ?? []) as $ee) {
+            $ee = strtolower((string)$ee);
+            if (isset($users['users'][$ee]) && empty($users['users'][$ee]['banned'])) $targets[] = $ee;
+        }
+    } else {
+        foreach ($fl as $follower => $list) {
+            if (is_array($list) && in_array($targetEmail, $list, true) &&
+                isset($users['users'][$follower]) && empty($users['users'][$follower]['banned'])) {
+                $targets[] = strtolower((string)$follower);
+            }
         }
     }
-    json_out(['ok' => true, 'users' => $out]);
+
+    // 分页：cursor=int 偏移（默认0），limit（默认20，max50）
+    $cursor = isset($in['cursor']) ? max(0, (int)$in['cursor']) : 0;
+    $limit  = isset($in['limit'])  ? max(1, min(50, (int)$in['limit'])) : 20;
+    $total = count($targets);
+    $page = array_slice($targets, $cursor, $limit);
+    $next = ($cursor + $limit < $total) ? ($cursor + $limit) : null;
+
+    // relation 一律查看者(我)视角，不恒 true：
+    //   following    = 我(查看者)是否关注了列表项
+    //   following_me = 列表项是否关注了我(查看者)
+    $out = [];
+    foreach ($page as $ee) {
+        $pu = public_user($users['users'][$ee]);   // 已含 bio
+        $pu['relation'] = [
+            'following'    => in_array($ee, $fl[$meEmail] ?? [], true),
+            'following_me' => in_array($meEmail, $fl[$ee] ?? [], true),
+            'blocked'      => in_array($ee, $myBlocks, true),
+            'muted'        => in_array($ee, $myMutes, true),
+        ];
+        $out[] = $pu;
+    }
+    json_out(['ok' => true, 'users' => $out, 'nextCursor' => $next]);
+}
+
+// ---------- remove_follower（v3.6.0：移除粉丝 ≠ Block；只删 follows[对方] 里对我的边，不写 blocks、不动我的关注） ----------
+if ($action === 'remove_follower') {
+    $target = strtolower(trim((string)($in['email'] ?? '')));
+    // 空/自己/对方本就没关注我 → 幂等 ok:true；只删对方关注列表里我的那条边
+    if ($target !== '' && $target !== $meEmail) {
+        $ok = db_transact_json(FOLLOWS_FILE, [], function($fl) use ($meEmail, $target) {
+            if (!isset($fl[$target]) || !is_array($fl[$target])) return null;   // 对方关注列表不存在 → 无改动
+            $before = $fl[$target];
+            $after  = array_values(array_diff($before, [$meEmail]));
+            if ($after === $before) return null;   // 对方本就没关注我 → 无改动（幂等 ok）
+            $fl[$target] = $after;
+            return $fl;
+        });
+        if ($ok === false) json_out(['ok' => false, 'err' => 'io', 'msg' => '操作失败'], 500);
+    }
+    json_out(['ok' => true]);
 }
 
 // ---------- posts_of（v3.5.5：作者全部有效帖含回复帖 + 本人 reposts[] 转发的帖，带 repostWrapper） ----------
 if ($action === 'posts_of') {
     $target = isset($in['email']) && trim((string)$in['email']) !== '' ? strtolower(trim((string)$in['email'])) : $meEmail;
+    // v3.6.0：Block 可见性——对方拉黑了我 → 其主页帖不可见（与 user_profile 一致）；我拉黑对方仍可看
+    if ($target !== $meEmail && blocked_by($meEmail, $target)) {
+        json_out(['ok' => true, 'posts' => []]);
+    }
     $postsDoc = db_read_json(POSTS_FILE, POSTS_DEFAULT);
     $social = db_read_json(SOCIAL_FILE, SOCIAL_DEFAULT);
     $users = load_users();
@@ -812,6 +927,83 @@ if ($action === 'posts_of') {
         if ($row[2] !== null) $decorated[$i]['repostWrapper'] = $row[2];   // 包装层=主页主人转发
     }
     json_out(['ok' => true, 'posts' => array_values($decorated)]);
+}
+
+// ---------- user_profile（v3.6.0：他人/自己主页聚合——公开资料(含bio+counts) + relation + 其有效帖） ----------
+if ($action === 'user_profile') {
+    $target = isset($in['email']) && trim((string)$in['email']) !== '' ? strtolower(trim((string)$in['email'])) : $meEmail;
+    $users = load_users();
+    if (!isset($users['users'][$target]) || !is_array($users['users'][$target])) {
+        json_out(['ok' => false, 'err' => 'notfound', 'msg' => '用户不存在'], 404);
+    }
+    $tu = $users['users'][$target];
+    $targetBanned = !empty($tu['banned']);
+
+    $fl = db_read_json(FOLLOWS_FILE, []);
+    // counts：只算有效（存在且未 banned）
+    $followingCount = 0;
+    foreach (($fl[$target] ?? []) as $ee) {
+        if (isset($users['users'][$ee]) && empty($users['users'][$ee]['banned'])) $followingCount++;
+    }
+    $followerCount = 0;
+    foreach ($fl as $actor => $list) {
+        if (is_array($list) && in_array($target, $list, true) &&
+            isset($users['users'][$actor]) && empty($users['users'][$actor]['banned'])) $followerCount++;
+    }
+
+    // relation：自己查自己时 following/following_me 均 false（不能关注自己）
+    $following = ($target !== $meEmail) && in_array($target, $fl[$meEmail] ?? [], true);
+    $followingMe = false;
+    if ($target !== $meEmail) {
+        foreach ($fl as $actor => $list) {
+            if (is_array($list) && $actor === $target && in_array($meEmail, $list, true)) { $followingMe = true; break; }
+        }
+    }
+    $blocked   = has_blocked($meEmail, $target);    // 我拉黑了对方
+    $blockedBy = blocked_by($meEmail, $target);     // 对方拉黑了我
+    $muted    = is_muted($meEmail, $target);
+    $mutual   = $following && $followingMe;
+
+    $pu = public_user($tu);   // 含 bio
+    $user = [
+        'email' => $pu['email'], 'nickname' => $pu['nickname'], 'avatar' => $pu['avatar'],
+        'bio' => $pu['bio'], 'role' => $pu['role'], 'banned' => $pu['banned'],
+        'created_at' => $pu['created_at'],
+        'following_count' => $followingCount, 'follower_count' => $followerCount,
+    ];
+    $relation = [
+        'following' => $following, 'following_me' => $followingMe, 'mutual' => $mutual,
+        'blocked' => $blocked, 'blocked_by' => $blockedBy, 'muted' => $muted,
+    ];
+
+    // Block 可见性：对方拉黑我 / 目标已 banned → posts 空（前端降级）；我拉黑对方仍可看主页帖
+    $posts = [];
+    if (!$blockedBy && !$targetBanned) {
+        $postsDoc = db_read_json(POSTS_FILE, POSTS_DEFAULT);
+        $social = db_read_json(SOCIAL_FILE, SOCIAL_DEFAULT);
+        $rows = [];
+        foreach (filter_eligible($postsDoc['items'] ?? []) as $p) {
+            if (($p['author'] ?? '') === $target) $rows[] = [$p['createdAt'] ?? '', $p, null];
+        }
+        foreach (($social['reposts'] ?? []) as $r) {
+            if (($r['user'] ?? '') !== $target) continue;
+            $orig = find_post_by_id($postsDoc['items'] ?? [], $r['post_id'] ?? '');
+            if (!$orig || ($orig['status'] ?? 'normal') !== 'normal') continue;
+            $oa = $orig['author'] ?? '';
+            if (!isset($users['users'][$oa]) || !empty($users['users'][$oa]['banned'])) continue;
+            $rows[] = [$r['at'] ?? '', $orig, ['byNickname' => author_card($target)['nickname'], 'at' => $r['at'] ?? '']];
+        }
+        usort($rows, fn($a, $b) => strcmp($b[0], $a[0]));
+        $out = [];
+        foreach ($rows as $row) $out[] = $row[1];
+        $decorated = decorate_posts($out, $meEmail, $postsDoc);
+        foreach ($rows as $i => $row) {
+            if ($row[2] !== null) $decorated[$i]['repostWrapper'] = $row[2];
+        }
+        $posts = array_values($decorated);
+    }
+
+    json_out(['ok' => true, 'user' => $user, 'relation' => $relation, 'posts' => $posts, 'empty' => null]);
 }
 
 // ---------- comments_of（v3.5.5：按 conversation_id=id 返回回复树；hidden 默认过滤，include_hidden=1 给 hiddenComments） ----------

@@ -92,6 +92,7 @@ if ($action === 'register') {
         'nickname' => $nick,
         'password_hash' => password_hash($pwd, PASSWORD_BCRYPT),
         'avatar' => $avatar,
+        'bio' => '',   // v3.6.0：注册默认空简介（public_user 亦兜底，此处仅为数据整洁）
         'role' => $isFirst ? 'admin' : 'user',
         'banned' => false,
         'created_at' => now(),

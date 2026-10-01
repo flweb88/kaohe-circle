@@ -22,8 +22,14 @@ if ($action === 'update') {
     if (mb_strlen($nick) > 20) {
         json_out(['ok' => false, 'err' => 'nick', 'msg' => '昵称长度须 ≤20 字']);
     }
+    // v3.6.0：bio 简介（可选传参；传空串=清空；不传=不改）
+    $bio = isset($in['bio']) ? trim((string)$in['bio']) : null;
+    if ($bio !== null && mb_strlen($bio) > 100) {
+        json_out(['ok' => false, 'err' => 'bio', 'msg' => '简介须 ≤100 字']);
+    }
     $users = users_self();
     $users['users'][$email]['nickname'] = $nick;
+    if ($bio !== null) $users['users'][$email]['bio'] = $bio;
     save_users($users);
     json_out(['ok' => true, 'user' => public_user($users['users'][$email])]);
 }

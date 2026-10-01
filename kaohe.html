@@ -601,6 +601,83 @@ footer .fb-link:hover{text-decoration:underline}
 @media(min-width:1280px){
   .hidden-cmt-entry,.cmt-list{max-width:680px;margin-left:auto;margin-right:auto}
 }
+
+/* ===== v3.6.0 用户关系网：用户主页 / 关注列表 ===== */
+.up-topbar{display:flex;align-items:center;gap:10px;padding:10px 0 14px;border-bottom:1px solid var(--border)}
+.up-topbar .pd-title{flex:1;text-align:center;font-weight:700;font-size:15px}
+.up-hero{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 18px;box-shadow:var(--shadow);margin-bottom:14px}
+.up-hero-row{display:flex;align-items:flex-start;gap:14px}
+.up-ava{width:72px;height:72px;border-radius:50%;object-fit:cover;background:#F1F2F6;flex:none;border:2px solid var(--primary-soft)}
+.up-info{flex:1;min-width:0}
+.up-nick{font-size:20px;font-weight:800;line-height:1.2}
+.up-email{font-size:12.5px;color:var(--muted);margin-top:2px;word-break:break-all}
+.up-bio{font-size:13.5px;color:var(--text);margin-top:10px;line-height:1.5;word-break:break-word;white-space:pre-wrap}
+.up-bio.empty{color:var(--muted)}
+.up-stats{display:flex;gap:24px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)}
+.up-stat{cursor:pointer}
+.up-stat .n{font-size:18px;font-weight:800}
+.up-stat .l{font-size:12px;color:var(--muted);margin-top:1px}
+.up-actions{display:flex;gap:10px;margin-top:16px;align-items:center}
+.up-btn{flex:1;max-width:200px;padding:10px;border-radius:11px;font-weight:600;font-size:14px;transition:all .15s;text-align:center;cursor:pointer;border:none}
+.up-btn.follow{background:var(--primary);color:#fff;box-shadow:0 3px 8px rgba(29,124,242,.28)}
+.up-btn.follow:hover{background:var(--primary-deep)}
+.up-btn.unfollow{background:#F1F2F6;color:var(--text)}
+.up-btn.unfollow:hover{background:#E9EAF0}
+.up-btn.edit{background:var(--primary-soft);color:var(--primary)}
+.up-btn.edit:hover{background:#D6E6FC}
+.up-more{flex:none;width:38px;height:38px;border-radius:50%;background:#F1F2F6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;font-weight:700;color:var(--muted)}
+.up-more:hover{background:#E9EAF0;color:var(--text)}
+.up-banner{border-radius:12px;padding:12px 15px;font-size:13px;margin-bottom:14px;line-height:1.6}
+.up-banner.blocked{background:var(--danger-soft);color:var(--danger);border:1px solid #F5B5B0}
+.up-banner.muted{background:#FFF7E6;color:#B45309;border:1px solid #FDE68A}
+.up-banner.blocked_by{background:#F1F2F6;color:var(--muted);border:1px solid var(--border)}
+.up-posts{margin-top:6px}
+.up-empty{padding:40px 20px;text-align:center;color:var(--muted)}
+.up-empty .t{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
+/* 用户列表（关注/粉丝） */
+.ul-list{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.ul-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.ul-row:last-child{border-bottom:none}
+.ul-row:hover{background:#F8F9FC}
+.ul-ava{width:46px;height:46px;border-radius:50%;object-fit:cover;background:#F1F2F6;flex:none}
+.ul-info{flex:1;min-width:0}
+.ul-nick{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:6px}
+.ul-bio{font-size:12.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ul-btn{flex:none;padding:7px 16px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.ul-btn.follow{background:var(--primary);color:#fff}
+.ul-btn.follow:hover{background:var(--primary-deep)}
+.ul-btn.following{background:#F1F2F6;color:var(--text)}
+.ul-btn.following:hover{background:#FADADA;color:var(--danger)}
+.ul-btn.remove{background:var(--danger-soft);color:var(--danger);font-size:12px;padding:6px 12px}
+.ul-btn.remove:hover{background:#FADADA}
+.ul-loadmore{padding:14px;text-align:center}
+.ul-empty{padding:48px 20px;text-align:center;color:var(--muted)}
+.ul-empty .t{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
+/* 帖子卡片角标（已拉黑/已静音提示） */
+.post .relation-tag{display:inline-block;font-size:10px;font-weight:600;border-radius:5px;padding:1px 5px;margin-left:6px;vertical-align:middle}
+.post .relation-tag.you-blocked{background:var(--danger-soft);color:var(--danger)}
+.post .relation-tag.you-muted{background:#FEF3C7;color:#B45309}
+/* 注册成功弹窗：管理员推荐卡 */
+.reg-admin-card{display:flex;align-items:center;gap:12px;background:var(--card);border:1.5px solid var(--primary);border-radius:14px;padding:14px;margin:16px 0}
+.reg-admin-card img{width:52px;height:52px;border-radius:50%;object-fit:cover;background:#F1F2F6;flex:none}
+.reg-admin-card .rac-info{flex:1;min-width:0}
+.reg-admin-card .rac-n{font-weight:700;font-size:15px}
+.reg-admin-card .rac-tag{display:inline-block;font-size:10.5px;color:var(--primary);background:var(--primary-soft);border-radius:6px;padding:1px 6px;margin-left:6px;font-weight:600}
+.reg-admin-card .rac-s{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.4}
+.reg-admin-card .rac-ava-ph{width:52px;height:52px;border-radius:50%;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex:none}
+/* @提及可点击 */
+.post-text .mention,.cmt-body .mention{cursor:pointer}
+.post-text .mention:hover,.cmt-body .mention:hover{text-decoration:underline}
+.post-head .pa,.post-head .pname{cursor:pointer}
+.cmt-head .cmt-ava,.cmt-head .cmt-nick{cursor:pointer}
+@media(max-width:480px){
+  .up-hero{padding:16px 14px}
+  .up-ava{width:60px;height:60px}
+  .up-nick{font-size:18px}
+  .up-stats{gap:18px}
+  .ul-row{padding:11px 12px}
+  .ul-ava{width:40px;height:40px}
+}
 </style>
 </head>
 <body>
@@ -608,7 +685,7 @@ footer .fb-link:hover{text-decoration:underline}
 <div id="auth-root" style="display:none"></div>
 <div id="app">
   <main id="main"></main>
-  <footer>考核小管家 v3.5.5 · 考核圈社交版<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
+  <footer>考核小管家 v3.6.0 · 考核圈社交版<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
 </div>
 <nav class="tabbar" id="tabbar">
   <button class="tb" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>首页</button>
@@ -969,7 +1046,7 @@ function renderAuth(){
   }
   document.getElementById('auth-root').innerHTML =
     '<div class="rk-wrap">' + brandHtml + body +
-      '<div class="rk-ver">考核圈 · 社交版第一页 v3.5.5</div>' +
+      '<div class="rk-ver">考核圈 · 社交版第一页 v3.6.0</div>' +
     '</div>';
   if (authMode === 'register'){
     refreshCaptcha();
@@ -1040,23 +1117,52 @@ function uploadRegCustomAvatar(token, file){
         });
     }).catch(function(){ toast('头像上传失败，已使用默认头像', 'warn'); });
 }
-/* 注册成功弹窗：绿色对勾 + 欢迎语 + 关注/跳过（不展示推荐关注列表） */
+/* 注册成功弹窗：绿色对勾 + 欢迎语 + 推荐管理员卡 + 加入/跳过 */
 function showRegSuccessModal(){
-  var m = openModal(
-    '<div class="rk-done-wrap">' +
-      '<div class="rk-done-check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>' +
-      '<div class="rk-done-title">注册成功</div>' +
-      '<div class="rk-done-sub">欢迎加入考核圈</div>' +
-      '<div class="rk-done-btns">' +
-        '<button type="button" class="rk-btn-blue" data-action="reg-follow">关注</button>' +
-        '<button type="button" class="rk-btn-gray" data-action="reg-skip">跳过</button>' +
-      '</div>' +
-    '</div>'
-  );
-  /* 注册成功弹窗必须二选一，禁止点遮罩关闭 */
-  var mask = document.querySelector('#modal-root .modal-mask');
-  if (mask){ mask.removeAttribute('data-action'); mask.classList.add('rk-noclose'); }
-  return m;
+  /* 先拉管理员信息渲染推荐卡 */
+  postJSON('kaohe-api/follow.php?action=info', {})
+    .then(function(res){
+      var adminHtml = '';
+      if (res.json && res.json.ok && res.json.admin){
+        var a = res.json.admin;
+        var avUrl = avatarUrl(a.avatar);
+        var avHtml = avUrl ? '<img src="' + avUrl + '" alt="">' : '<div class="rac-ava-ph">管</div>';
+        adminHtml = '<div class="reg-admin-card">' + avHtml +
+          '<div class="rac-info"><div class="rac-n">' + esc(a.nickname||'管理员') + '<span class="rac-tag">管理员</span></div>' +
+          '<div class="rac-s">' + esc(a.bio||'社区管理员，有问题随时找 TA') + '</div></div></div>';
+      }
+      openModal(
+        '<div class="rk-done-wrap">' +
+          '<div class="rk-done-check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>' +
+          '<div class="rk-done-title">注册成功</div>' +
+          '<div class="rk-done-sub">欢迎加入考核圈，先认识一下管理员吧</div>' +
+          adminHtml +
+          '<div class="rk-done-btns">' +
+            '<button type="button" class="rk-btn-blue" data-action="reg-follow">加入</button>' +
+            '<button type="button" class="rk-btn-gray" data-action="reg-skip">跳过</button>' +
+          '</div>' +
+        '</div>'
+      );
+      /* 注册成功弹窗必须二选一，禁止点遮罩关闭 */
+      var mask = document.querySelector('#modal-root .modal-mask');
+      if (mask){ mask.removeAttribute('data-action'); mask.classList.add('rk-noclose'); }
+    })
+    .catch(function(){
+      // 管理员信息加载失败也直接显示弹窗
+      openModal(
+        '<div class="rk-done-wrap">' +
+          '<div class="rk-done-check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>' +
+          '<div class="rk-done-title">注册成功</div>' +
+          '<div class="rk-done-sub">欢迎加入考核圈</div>' +
+          '<div class="rk-done-btns">' +
+            '<button type="button" class="rk-btn-blue" data-action="reg-follow">加入</button>' +
+            '<button type="button" class="rk-btn-gray" data-action="reg-skip">跳过</button>' +
+          '</div>' +
+        '</div>'
+      );
+      var mask = document.querySelector('#modal-root .modal-mask');
+      if (mask){ mask.removeAttribute('data-action'); mask.classList.add('rk-noclose'); }
+    });
 }
 function doRegSkip(){
   closeModal();
@@ -1891,6 +1997,10 @@ function renderMe(){
     rows += '<div class="mm-row" data-action="open-nickname"><span class="mm-ico">' + icoNick + '</span>' +
       '<div class="mm-body"><div class="mm-t">修改昵称</div><div class="mm-s">当前：' + esc(u.nickname || '小笨猪') + '</div></div>' +
       '<span class="mm-arrow">' + arrowSvg + '</span></div>';
+    var icoBio = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>';
+    rows += '<div class="mm-row" data-action="open-bio-edit"><span class="mm-ico">' + icoBio + '</span>' +
+      '<div class="mm-body"><div class="mm-t">个人简介</div><div class="mm-s">' + (u.bio ? esc(u.bio) : '未设置') + '</div></div>' +
+      '<span class="mm-arrow">' + arrowSvg + '</span></div>';
     rows += '<div class="mm-row" data-action="open-password"><span class="mm-ico">' + icoPwd + '</span>' +
       '<div class="mm-body"><div class="mm-t">修改密码</div><div class="mm-s">需验证原密码</div></div>' +
       '<span class="mm-arrow">' + arrowSvg + '</span></div>';
@@ -1902,6 +2012,13 @@ function renderMe(){
         '<div class="mm-body"><div class="mm-t">管理员面板</div><div class="mm-s">账户管理 / 邀请码 / 系统配置</div></div>' +
         '<span class="mm-arrow">' + arrowSvg + '</span></div>';
     }
+    var icoFriends = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+    rows += '<div class="mm-row" data-action="open-user-list" data-mode="following"><span class="mm-ico">' + icoFriends + '</span>' +
+      '<div class="mm-body"><div class="mm-t">我的关注</div><div class="mm-s">查看我正在关注的人</div></div>' +
+      '<span class="mm-arrow">' + arrowSvg + '</span></div>';
+    rows += '<div class="mm-row" data-action="open-user-list" data-mode="followers"><span class="mm-ico">' + icoFriends + '</span>' +
+      '<div class="mm-body"><div class="mm-t">我的粉丝</div><div class="mm-s">关注我的人</div></div>' +
+      '<span class="mm-arrow">' + arrowSvg + '</span></div>';
     rows += '<div class="mm-row danger" data-action="logout"><span class="mm-ico">' + icoLogout + '</span>' +
       '<div class="mm-body"><div class="mm-t">退出登录</div><div class="mm-s">退出当前账号并返回登录页</div></div>' +
       '<span class="mm-arrow">' + arrowSvg + '</span></div>';
@@ -2127,12 +2244,12 @@ function saveRate(){
 }
 
 /* ==== 渲染入口 ==== */
-var view = { tab:'today', homeTab:'checkin', histTab:'settle', circleTab:'recommend', meSeg:'posts', meTab:'habits', dmPeer:null, feedCache:{recommend:null,follow:null} };
+var view = { tab:'today', homeTab:'checkin', histTab:'settle', circleTab:'recommend', meSeg:'posts', meTab:'habits', dmPeer:null, feedCache:{recommend:null,follow:null}, profileEmail:null, userListMode:null, userListEmail:null, userListCursor:null, userListUsers:[], userListLoading:false, userListNoMore:false, userListMe:false };
 var editingId = null, formIcon = 'star', formColor = COLORS[0], formType = 'check';
 /* 底部 tabbar 激活映射：当前 view.tab 对应点亮哪个底部 tab */
 function bottomTabOf(v){
   if (v==='today' || v==='account') return 'today';
-  if (v==='habits' || v==='history' || v==='me') return 'me';
+  if (v==='habits' || v==='history' || v==='me' || v==='user-profile' || v==='user-list') return 'me';
   if (v==='circle') return 'circle';
   if (v==='msgs') return 'msgs';
   return 'today';
@@ -2150,6 +2267,8 @@ function render(){
   else if (view.tab==='account') html = renderAccount();
   else if (view.tab==='me') html = renderMe();
   else if (view.tab==='circle') html = view.postDetail ? renderPostDetail() : renderCircle();
+  else if (view.tab==='user-profile') html = renderUserProfile();
+  else if (view.tab==='user-list') html = renderUserList();
   else if (view.tab==='msgs') html = renderComingSoon('消息（私信/通知）','消息（私信/通知）功能建设中，敬请期待');
   else html = renderHistory();
   if (!storageOk) html = '<div class="banner">数据无法保存：当前浏览器以文件方式打开时不允许本地存储（常见于 Safari）。请改用 <b>Chrome</b> 打开本文件，数据才能长期保存；当前操作仅临时有效，建议先到「历史记录」页导出备份。</div>' + html;
@@ -2207,7 +2326,7 @@ function rpTagHtml(rp){
 function renderPostText(t){
   if (!t) return '';
   var safe = esc(t);
-  safe = safe.replace(/@([^\s@，。,.!！?？:：;；、<]+)/g, '<span class="mention">@$1</span>');
+  safe = safe.replace(/@([^\s@，。,.!！?？:：;；、<]+)/g, '<span class="mention" data-action="goto-user-nick" data-nick="$1">@$1</span>');
   return '<div class="post-text">' + safe + '</div>';
 }
 function renderScoreCardInner(c){
@@ -2298,8 +2417,11 @@ function renderPostCard(p){
       + esc(p.repostWrapper.byNickname) + ' 转发了</div>'
     : '';
   var head = '<div class="post-head">' +
-    '<img class="pa" src="' + avatarUrl(p.authorAvatar) + '" alt="" onerror="this.style.opacity=.4">' +
-    '<div class="pmeta"><div class="pname">' + esc(p.authorNick||'已注销') + rpTagHtml(p.reply_policy) + '</div>' +
+    '<img class="pa" src="' + avatarUrl(p.authorAvatar) + '" alt="" onerror="this.style.opacity=.4" data-action="goto-user" data-email="' + esc(p.author||'') + '">' +
+    '<div class="pmeta"><div class="pname" data-action="goto-user" data-email="' + esc(p.author||'') + '">' + esc(p.authorNick||'已注销') + rpTagHtml(p.reply_policy) +
+    (p.youBlocked ? '<span class="relation-tag you-blocked">已拉黑</span>' : '') +
+    (p.youMuted ? '<span class="relation-tag you-muted">已静音</span>' : '') +
+    '</div>' +
     '<div class="psub">' + fmtRel(p.createdAt) + '</div></div>' +
     (mine ? '<div class="pbook" data-action="del-post" data-id="' + p.id + '" title="删除此帖">🗑</div>' : '') +
   '</div>';
@@ -2359,8 +2481,11 @@ function renderPostDetailHtml(p){
     ? '<span class="rp-set-btn" data-action="rp-settings" data-id="' + p.id + '" title="谁可以回复">✏️</span>'
     : '';
   var head = '<div class="post-head">' +
-    '<img class="pa" src="' + avatarUrl(p.authorAvatar) + '" alt="" onerror="this.style.opacity=.4">' +
-    '<div class="pmeta"><div class="pname">' + esc(p.authorNick||'已注销') + rpTagHtml(p.reply_policy) + rpBtn + '</div>' +
+    '<img class="pa" src="' + avatarUrl(p.authorAvatar) + '" alt="" onerror="this.style.opacity=.4" data-action="goto-user" data-email="' + esc(p.author||'') + '">' +
+    '<div class="pmeta"><div class="pname" data-action="goto-user" data-email="' + esc(p.author||'') + '">' + esc(p.authorNick||'已注销') + rpTagHtml(p.reply_policy) + rpBtn +
+    (p.youBlocked ? '<span class="relation-tag you-blocked">已拉黑</span>' : '') +
+    (p.youMuted ? '<span class="relation-tag you-muted">已静音</span>' : '') +
+    '</div>' +
     '<div class="psub">' + fmtRel(p.createdAt) + '</div></div>' +
     (mine ? '<div class="pbook" data-action="del-post" data-id="' + p.id + '" title="删除此帖">🗑</div>' : '') +
   '</div>';
@@ -2439,6 +2564,430 @@ function updateFeedList(){
   if (!list) return;
   var tab = view.circleTab || 'recommend';
   list.innerHTML = feedListHtml(view.feed[tab], tab);
+}
+
+/* ================= v3.6.0 用户关系网 ================= */
+/* 用户主页 */
+var _upData = null;  // 当前用户主页数据缓存
+function openUserProfile(email){
+  if (!email) return;
+  email = String(email).toLowerCase();
+  var me = Auth.user || {};
+  if (email === (me.email||'').toLowerCase()){
+    view.tab = 'me'; render(); return;
+  }
+  view.profileEmail = email;
+  view.tab = 'user-profile';
+  _upData = null;
+  render();
+  loadUserProfile(email);
+}
+function loadUserProfile(email){
+  email = email || view.profileEmail;
+  if (!email) return;
+  postJSON('kaohe-api/social.php?action=user_profile', { token:Auth.token, email:email })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        _upData = res.json;
+        render();
+      } else {
+        // 降级：user_profile 未实现时用 search_users + posts_of 拼接
+        loadUserProfileFallback(email);
+      }
+    })
+    .catch(function(){
+      loadUserProfileFallback(email);
+    });
+}
+/* 降级方案：user_profile 接口未上线时，用现有接口拼接用户主页数据 */
+function loadUserProfileFallback(email){
+  // 并行拉：search_users 找用户 + posts_of 拉帖子
+  Promise.all([
+    postJSON('kaohe-api/social.php?action=search_users', { token:Auth.token, q:email }),
+    postJSON('kaohe-api/social.php?action=posts_of', { token:Auth.token, email:email })
+  ]).then(function(results){
+    var searchRes = results[0], postsRes = results[1];
+    var user = null;
+    if (searchRes.json && searchRes.json.ok){
+      var users = searchRes.json.users || [];
+      for (var i=0;i<users.length;i++){
+        if ((users[i].email||'').toLowerCase() === email.toLowerCase()){ user = users[i]; break; }
+      }
+    }
+    if (!user){
+      _upData = { ok:false, msg:'用户不存在或已注销' };
+      render(); return;
+    }
+    var posts = (postsRes.json && postsRes.json.ok) ? (postsRes.json.posts||[]) : [];
+    _upData = {
+      ok: true,
+      user: user,
+      relation: { following:false, following_me:false, mutual:false, blocked:false, blocked_by:false, muted:false },
+      posts: posts,
+      empty: null
+    };
+    render();
+  }).catch(function(){
+    _upData = { ok:false, msg:'网络错误' };
+    render();
+  });
+}
+function upFollowBtnHtml(rel, email){
+  if (!rel) return '<button class="up-btn follow" data-action="up-follow" data-email="' + esc(email) + '">关注</button>';
+  if (rel.blocked) return '<button class="up-btn unfollow" disabled style="opacity:.5">已拉黑</button>';
+  if (rel.blocked_by) return '<button class="up-btn unfollow" disabled style="opacity:.5">无法互动</button>';
+  if (rel.following) return '<button class="up-btn unfollow" data-action="up-unfollow" data-email="' + esc(email) + '">已关注</button>';
+  return '<button class="up-btn follow" data-action="up-follow" data-email="' + esc(email) + '">关注</button>';
+}
+function renderUserProfile(){
+  var me = Auth.user || {};
+  var email = view.profileEmail;
+  if (!email) return '<div class="empty"><div class="t">用户不存在</div></div>';
+  var topbar = '<div class="pd-topbar"><button class="btn btn-ghost btn-sm" data-action="back">‹ 返回</button>' +
+    '<div class="pd-title">主页</div><div style="width:56px"></div></div>';
+  if (!_upData){
+    return topbar + '<div class="feed-loading">正在加载用户主页…</div>';
+  }
+  if (!_upData.ok){
+    return topbar + '<div class="empty"><div class="t">加载失败</div><div>' + esc(_upData.msg||'未知错误') + '</div>' +
+      '<div style="margin-top:12px"><button class="btn btn-ghost" data-action="back">返回</button></div></div>';
+  }
+  var u = _upData.user || {};
+  var rel = _upData.relation || {};
+  var isMe = (email === (me.email||'').toLowerCase());
+  // 被对方拉黑：无法查看/无法互动
+  if (rel.blocked_by){
+    return topbar + '<div class="up-banner blocked_by">你们之间还没有互动，或对方已限制查看。</div>';
+  }
+  var avUrl = avatarUrl(u.avatar);
+  var avHtml = avUrl ? '<img class="up-ava" src="' + avUrl + '" alt="" onerror="this.style.opacity=.4">'
+    : '<div class="up-ava" style="display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:var(--muted)">?</div>';
+  var bioHtml = u.bio
+    ? '<div class="up-bio">' + esc(u.bio) + '</div>'
+    : '<div class="up-bio empty">这个人很懒，什么都没写~</div>';
+  // 已拉黑/已静音横幅
+  var bannerHtml = '';
+  if (rel.blocked) bannerHtml = '<div class="up-banner blocked">你已拉黑该用户。TA 的动态不会出现在你的推荐流，且无法互动。<button class="btn btn-ghost btn-sm" style="margin-left:10px" data-action="up-unblock" data-email="' + esc(email) + '">取消拉黑</button></div>';
+  else if (rel.muted) bannerHtml = '<div class="up-banner muted">你已静音该用户。TA 的动态仍可看到，但不会收到通知。<button class="btn btn-ghost btn-sm" style="margin-left:10px" data-action="up-unmute" data-email="' + esc(email) + '">取消静音</button></div>';
+  // 操作按钮区
+  var actionsHtml = '';
+  if (isMe){
+    actionsHtml = '<div class="up-actions"><button class="up-btn edit" data-action="open-bio-edit">编辑资料</button></div>';
+  } else {
+    actionsHtml = '<div class="up-actions">' +
+      upFollowBtnHtml(rel, email) +
+      '<div class="up-more" data-action="open-user-menu" data-email="' + esc(email) + '" title="更多">···</div>' +
+    '</div>';
+  }
+  // 统计区（关注数/粉丝数可点击跳转列表）
+  var statsHtml = '<div class="up-stats">' +
+    '<div class="up-stat" data-action="open-user-list" data-mode="following" data-email="' + esc(email) + '"><div class="n">' + (u.following_count||0) + '</div><div class="l">关注</div></div>' +
+    '<div class="up-stat" data-action="open-user-list" data-mode="followers" data-email="' + esc(email) + '"><div class="n">' + (u.follower_count||0) + '</div><div class="l">粉丝</div></div>' +
+  '</div>';
+  var heroHtml = '<div class="up-hero">' +
+    '<div class="up-hero-row">' + avHtml +
+      '<div class="up-info">' +
+        '<div class="up-nick">' + esc(u.nickname||'小笨猪') +
+          (u.role==='admin' ? ' <span class="pill pill-warn" style="font-size:10px">管理员</span>' : '') +
+        '</div>' +
+        '<div class="up-email">' + esc(u.email||'') + '</div>' +
+        bioHtml +
+      '</div>' +
+    '</div>' +
+    statsHtml +
+    actionsHtml +
+  '</div>';
+  // 帖子列表（已拉黑时不显示）
+  var postsHtml = '';
+  if (rel.blocked){
+    postsHtml = '<div class="up-empty"><div class="t">已拉黑该用户</div><div>取消拉黑后可查看 TA 的动态</div></div>';
+  } else {
+    var posts = _upData.posts || [];
+    if (!posts.length){
+      postsHtml = '<div class="up-empty"><div class="t">还没有动态</div><div>TA 还没有发布任何内容</div></div>';
+    } else {
+      postsHtml = '<div class="up-posts">' + posts.map(renderPostCard).join('') + '</div>';
+    }
+  }
+  return topbar + bannerHtml + heroHtml + postsHtml;
+}
+
+/* 关注 / 粉丝列表 */
+function openUserList(mode, email){
+  view.userListMode = mode;
+  view.userListEmail = email || ((Auth.user||{}).email||'');
+  view.userListUsers = [];
+  view.userListCursor = null;
+  view.userListLoading = false;
+  view.userListNoMore = false;
+  view.userListMe = (view.userListEmail || '').toLowerCase() === ((Auth.user||{}).email||'').toLowerCase();
+  view.tab = 'user-list';
+  render();
+  loadUserList(false);
+}
+function loadUserList(reset){
+  if (view.userListLoading) return;
+  view.userListLoading = true;
+  if (!reset){
+    var listEl = document.getElementById('ul-list-body');
+    if (listEl){
+      var btn = listEl.querySelector('.ul-loadmore button');
+      if (btn) btn.textContent = '加载中…';
+    }
+  }
+  var action = view.userListMode === 'following' ? 'following' : 'followers';
+  var payload = { token:Auth.token, email: view.userListEmail, cursor: view.userListCursor, limit:20 };
+  postJSON('kaohe-api/social.php?action=' + action, payload)
+    .then(function(res){
+      view.userListLoading = false;
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        var users = res.json.users || [];
+        if (reset) view.userListUsers = users;
+        else view.userListUsers = view.userListUsers.concat(users);
+        view.userListCursor = res.json.nextCursor || null;
+        view.userListNoMore = !res.json.nextCursor;
+      } else {
+        toast(apiMsg(res), 'warn');
+      }
+      render();
+    })
+    .catch(function(){
+      view.userListLoading = false;
+      toast('网络错误', 'warn');
+      render();
+    });
+}
+function ulRowHtml(u){
+  var rel = u.relation || {};
+  var me = Auth.user || {};
+  var isMe = (u.email === (me.email||'').toLowerCase());
+  var avUrl = avatarUrl(u.avatar);
+  var avHtml = avUrl ? '<img class="ul-ava" src="' + avUrl + '" alt="" onerror="this.style.opacity=.4">'
+    : '<div class="ul-ava" style="display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:var(--muted)">?</div>';
+  // 关注/取关按钮（仅非本人）
+  var followBtn = '';
+  if (!isMe){
+    if (rel.blocked){
+      followBtn = '<button class="ul-btn following" disabled style="opacity:.5">已拉黑</button>';
+    } else if (rel.following){
+      followBtn = '<button class="ul-btn following" data-action="ul-unfollow" data-email="' + esc(u.email) + '">已关注</button>';
+    } else {
+      followBtn = '<button class="ul-btn follow" data-action="ul-follow" data-email="' + esc(u.email) + '">关注</button>';
+    }
+  }
+  // 粉丝列表：本人视角显示「移除」按钮
+  var removeBtn = '';
+  if (view.userListMe && view.userListMode === 'followers' && !isMe){
+    removeBtn = '<button class="ul-btn remove" data-action="ul-remove-follower" data-email="' + esc(u.email) + '">移除</button>';
+  }
+  var bioShort = u.bio ? esc(u.bio.length > 30 ? u.bio.slice(0,30)+'…' : u.bio) : '';
+  return '<div class="ul-row" data-action="goto-user" data-email="' + esc(u.email) + '">' +
+    avHtml +
+    '<div class="ul-info"><div class="ul-nick">' + esc(u.nickname||'小笨猪') +
+      (u.role==='admin' ? ' <span class="pill pill-warn" style="font-size:10px">管理员</span>' : '') +
+    '</div>' +
+    (bioShort ? '<div class="ul-bio">' + bioShort + '</div>' : '') +
+    '</div>' +
+    followBtn + removeBtn +
+  '</div>';
+}
+function renderUserList(){
+  var mode = view.userListMode || 'following';
+  var title = mode === 'following' ? '正在关注' : '粉丝';
+  var topbar = '<div class="pd-topbar"><button class="btn btn-ghost btn-sm" data-action="back">‹ 返回</button>' +
+    '<div class="pd-title">' + title + '</div><div style="width:56px"></div></div>';
+  if (!view.userListUsers.length && !view.userListLoading){
+    return topbar + '<div class="ul-empty"><div class="t">' + (mode==='following'?'还没有关注任何人':'还没有粉丝') + '</div><div>' + (mode==='following'?'去推荐页看看大家吧':'关注你的人会出现在这里') + '</div></div>';
+  }
+  var rows = view.userListUsers.map(ulRowHtml).join('');
+  var loadMore = view.userListNoMore ? ''
+    : '<div class="ul-loadmore"><button class="btn btn-ghost" data-action="ul-loadmore" ' + (view.userListLoading?'disabled':'') + '>' + (view.userListLoading?'加载中…':'加载更多') + '</button></div>';
+  return topbar + '<div class="ul-list" id="ul-list-body">' + rows + '</div>' + loadMore;
+}
+
+/* 关注/取关/拉黑/静音/移除粉丝 */
+function doFollow(email, btnEl){
+  postJSON('kaohe-api/social.php?action=follow', { token:Auth.token, email:email })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        toast('已关注', 'good');
+        // 更新主页按钮
+        if (view.tab === 'user-profile' && view.profileEmail === email){
+          loadUserProfile(email);
+        }
+        // 更新列表中的按钮
+        if (btnEl){
+          btnEl.textContent = '已关注';
+          btnEl.className = 'ul-btn following';
+          btnEl.setAttribute('data-action', 'ul-unfollow');
+        }
+      } else if (res.json && res.json.err === 'blocked'){
+        toast(res.json.msg || '对方已限制互动', 'warn');
+        if (btnEl){ btnEl.textContent = '无法关注'; btnEl.disabled = true; }
+        if (view.tab === 'user-profile') loadUserProfile(email);
+      } else {
+        toast(apiMsg(res), 'warn');
+      }
+    })
+    .catch(function(){ toast('网络错误', 'warn'); });
+}
+function doUnfollow(email, btnEl){
+  postJSON('kaohe-api/social.php?action=unfollow', { token:Auth.token, email:email })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        toast('已取消关注', 'good');
+        if (view.tab === 'user-profile' && view.profileEmail === email){
+          loadUserProfile(email);
+        }
+        if (btnEl){
+          btnEl.textContent = '关注';
+          btnEl.className = 'ul-btn follow';
+          btnEl.setAttribute('data-action', 'ul-follow');
+        }
+      } else toast(apiMsg(res), 'warn');
+    })
+    .catch(function(){ toast('网络错误', 'warn'); });
+}
+function doBlock(email){
+  if (!confirm('确认拉黑该用户？拉黑后 TA 将无法关注你、评论你的动态，你也看不到 TA 的动态。')) return;
+  postJSON('kaohe-api/blocks.php?action=block', { token:Auth.token, email:email })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        toast('已拉黑', 'good');
+        closeModal();
+        if (view.tab === 'user-profile') loadUserProfile(email);
+      } else toast(apiMsg(res), 'warn');
+    })
+    .catch(function(){ toast('网络错误', 'warn'); });
+}
+function doUnblock(email){
+  postJSON('kaohe-api/blocks.php?action=unblock', { token:Auth.token, email:email })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        toast('已取消拉黑', 'good');
+        if (view.tab === 'user-profile') loadUserProfile(email);
+      } else toast(apiMsg(res), 'warn');
+    })
+    .catch(function(){ toast('网络错误', 'warn'); });
+}
+function doMute(email){
+  postJSON('kaohe-api/mutes.php?action=mute', { token:Auth.token, email:email })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        toast('已静音', 'good');
+        closeModal();
+        if (view.tab === 'user-profile') loadUserProfile(email);
+      } else toast(apiMsg(res), 'warn');
+    })
+    .catch(function(){ toast('网络错误', 'warn'); });
+}
+function doUnmute(email){
+  postJSON('kaohe-api/mutes.php?action=unmute', { token:Auth.token, email:email })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        toast('已取消静音', 'good');
+        if (view.tab === 'user-profile') loadUserProfile(email);
+      } else toast(apiMsg(res), 'warn');
+    })
+    .catch(function(){ toast('网络错误', 'warn'); });
+}
+function doRemoveFollower(email){
+  if (!confirm('确认移除该粉丝？移除后 TA 将不再关注你。')) return;
+  postJSON('kaohe-api/social.php?action=remove_follower', { token:Auth.token, email:email })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        toast('已移除粉丝', 'good');
+        // 从列表中移除该行
+        view.userListUsers = view.userListUsers.filter(function(u){ return u.email !== email; });
+        render();
+      } else toast(apiMsg(res), 'warn');
+    })
+    .catch(function(){ toast('网络错误', 'warn'); });
+}
+function openUserMenu(email){
+  if (!_upData || !_upData.relation) return;
+  var rel = _upData.relation || {};
+  var blockBtn = rel.blocked
+    ? '<div class="rm-item" data-action="up-unblock-menu" data-email="' + esc(email) + '"><div class="rm-ic" style="background:var(--success-soft);color:var(--success)">✅</div><div class="rm-tx"><div class="rm-t">取消拉黑</div><div class="rm-d">恢复与该用户的互动</div></div></div>'
+    : '<div class="rm-item" data-action="up-block-menu" data-email="' + esc(email) + '"><div class="rm-ic" style="background:var(--danger-soft);color:var(--danger)">🚫</div><div class="rm-tx"><div class="rm-t">拉黑</div><div class="rm-d">不再看到 TA 的动态，禁止互动</div></div></div>';
+  var muteBtn = rel.muted
+    ? '<div class="rm-item" data-action="up-unmute-menu" data-email="' + esc(email) + '"><div class="rm-ic" style="background:#FEF3C7;color:#B45309">🔔</div><div class="rm-tx"><div class="rm-t">取消静音</div><div class="rm-d">恢复接收 TA 的动态通知</div></div></div>'
+    : '<div class="rm-item" data-action="up-mute-menu" data-email="' + esc(email) + '"><div class="rm-ic" style="background:#FEF3C7;color:#B45309">🔕</div><div class="rm-tx"><div class="rm-t">静音</div><div class="rm-d">不接收 TA 的动态通知</div></div></div>';
+  openModal(
+    '<h3>更多操作</h3><div class="sub">' + esc(_upData.user ? _upData.user.nickname : '') + '</div>' +
+    '<div class="repost-menu">' + blockBtn + muteBtn + '</div>' +
+    '<div class="modal-ft"><button class="btn btn-ghost" data-action="close-modal">取消</button></div>'
+  );
+}
+
+/* Bio 编辑弹窗 */
+function openBioModal(){
+  var u = Auth.user || {};
+  openModal(
+    '<h3>编辑简介</h3><p class="sub">一句话介绍自己（≤80字）</p>' +
+    '<div class="fld"><textarea id="pf-bio" rows="3" maxlength="80" placeholder="例如：爱阅读、爱运动的奶爸">'+ esc(u.bio||'') +'</textarea>' +
+    '<div class="hint" id="pf-bio-cnt">' + ((u.bio||'').length) + '/80</div></div>' +
+    '<div class="modal-ft"><button class="btn btn-ghost" data-action="close-modal">取消</button>' +
+    '<button class="btn btn-primary" data-action="pf-save-bio">保存</button></div>'
+  );
+  var ta = document.getElementById('pf-bio');
+  if (ta){
+    ta.addEventListener('input', function(){
+      var cnt = document.getElementById('pf-bio-cnt');
+      if (cnt) cnt.textContent = ta.value.length + '/80';
+    });
+  }
+}
+function saveBio(){
+  var v = (document.getElementById('pf-bio').value || '').trim();
+  postJSON('kaohe-api/profile.php?action=update', { token:Auth.token, bio:v })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        if (Auth.user){
+          Auth.user.bio = v;
+          try{ localStorage.setItem('kaohe_user', JSON.stringify(Auth.user)); }catch(e){}
+        }
+        closeModal();
+        render();
+        toast('简介已更新', 'good');
+      } else toast(apiMsg(res), 'warn');
+    })
+    .catch(function(){ toast('网络错误，保存失败', 'warn'); });
+}
+
+/* @昵称跳转：先搜索再进入主页 */
+var _nickCache = {};  // nickname -> email 缓存
+function gotoUserByNick(nick){
+  if (!nick) return;
+  nick = nick.replace(/^@/, '');
+  if (_nickCache[nick]){ openUserProfile(_nickCache[nick]); return; }
+  postJSON('kaohe-api/social.php?action=search_users', { token:Auth.token, q:nick })
+    .then(function(res){
+      if (apiFail(res)) return;
+      if (res.json && res.json.ok){
+        var users = res.json.users || [];
+        var found = null;
+        for (var i=0;i<users.length;i++){
+          if ((users[i].nickname||'') === nick){ found = users[i]; break; }
+        }
+        if (!found && users.length) found = users[0];
+        if (found){
+          _nickCache[nick] = found.email;
+          openUserProfile(found.email);
+        } else toast('未找到用户 @' + nick, 'warn');
+      } else toast(apiMsg(res), 'warn');
+    })
+    .catch(function(){ toast('网络错误', 'warn'); });
 }
 function loadFeed(tab, reset){
   ensureFeedState();
@@ -2582,7 +3131,7 @@ function doRepost(postId){
 function cmtItemHtml(c, withReplyBox, ctx){
   ctx = ctx || {};
   var text = esc(c.text||'');
-  text = text.replace(/@([^\s@，。,.!！?？:：;；、<]+)/g, '<span class="mention">@$1</span>');
+  text = text.replace(/@([^\s@，。,.!！?？:：;；、<]+)/g, '<span class="mention" data-action="goto-user-nick" data-nick="$1">@$1</span>');
   var repTag = c.replyNick ? ' <span class="cmt-reply-tag">回复 @' + esc(c.replyNick) + '</span>' : '';
   var media = (c.media && c.media.length)
     ? '<div class="cmt-media cols-' + Math.min(c.media.length,3) + '">' + c.media.map(function(m){ return renderMediaCell(m); }).join('') + '</div>'
@@ -2614,8 +3163,8 @@ function cmtItemHtml(c, withReplyBox, ctx){
   var when = fmtCmtDate(c.at || c.createdAt);
   var itemCls = 'cmt-item' + (isThread ? ' thread' : '') + (c.hidden ? ' is-hidden' : '');
   return '<div class="' + itemCls + '" data-cid="' + c.id + '">' +
-    '<div class="cmt-head"><img class="cmt-ava" src="' + avatarUrl(c.authorAvatar) + '" alt="" onerror="this.style.opacity=.4">' +
-    '<div class="cmt-who"><div class="cmt-nick">' + threadMark + esc(c.authorNick||'已注销') + (c.hidden ? ' <span class="cmt-hidden-tag">已隐藏</span>' : '') + '</div>' +
+    '<div class="cmt-head"><img class="cmt-ava" src="' + avatarUrl(c.authorAvatar) + '" alt="" onerror="this.style.opacity=.4" data-action="goto-user" data-email="' + esc(c.author||'') + '">' +
+    '<div class="cmt-who"><div class="cmt-nick" data-action="goto-user" data-email="' + esc(c.author||'') + '">' + threadMark + esc(c.authorNick||'已注销') + (c.hidden ? ' <span class="cmt-hidden-tag">已隐藏</span>' : '') + '</div>' +
     '<div class="cmt-time">' + when + '</div></div></div>' +
     '<div class="cmt-body">' + repTag + text + '</div>' +
     media + acts + rpBox + '</div>';
@@ -3406,6 +3955,33 @@ function handleAction(el, e){
       }
       break;
     }
+    /* ==== v3.6.0 用户关系网 ==== */
+    case 'goto-user': openUserProfile(el.getAttribute('data-email')); break;
+    case 'goto-user-nick': gotoUserByNick(el.getAttribute('data-nick')); break;
+    case 'back':
+      // 用户主页/列表返回：回到上一个合理的 tab
+      if (view.postDetail){ backToFeed(); }
+      else if (view.tab === 'user-list' || view.tab === 'user-profile'){
+        view.tab = 'me'; render();
+      }
+      break;
+    case 'up-follow': doFollow(el.getAttribute('data-email'), null); break;
+    case 'up-unfollow': doUnfollow(el.getAttribute('data-email'), null); break;
+    case 'up-unblock': doUnblock(el.getAttribute('data-email')); break;
+    case 'up-unmute': doUnmute(el.getAttribute('data-email')); break;
+    case 'open-user-menu': openUserMenu(el.getAttribute('data-email')); break;
+    case 'up-block-menu': doBlock(el.getAttribute('data-email')); break;
+    case 'up-unblock-menu': doUnblock(el.getAttribute('data-email')); break;
+    case 'up-mute-menu': doMute(el.getAttribute('data-email')); break;
+    case 'up-unmute-menu': doUnmute(el.getAttribute('data-email')); break;
+    case 'open-user-list':
+      openUserList(el.getAttribute('data-mode'), el.getAttribute('data-email')); break;
+    case 'ul-follow': doFollow(el.getAttribute('data-email'), el); break;
+    case 'ul-unfollow': doUnfollow(el.getAttribute('data-email'), el); break;
+    case 'ul-remove-follower': doRemoveFollower(el.getAttribute('data-email')); break;
+    case 'ul-loadmore': loadUserList(false); break;
+    case 'open-bio-edit': openBioModal(); break;
+    case 'pf-save-bio': saveBio(); break;
     case 'close-modal':
       if (!canCloseModal()) break;  // 弹窗刚打开 350ms 内的关闭点击忽略（防连点/误触）
       closeModal(); break;

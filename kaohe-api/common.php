@@ -16,6 +16,10 @@ define('UPLOAD_DIR',   DATA_DIR . 'uploads/');   // 帖子媒体：_pending/ 待
 define('UPLOAD_PENDING_DIR', UPLOAD_DIR . '_pending/');
 define('UPLOAD_DONE_DIR',    UPLOAD_DIR . 'done/');
 
+// v3.6.0 用户关系网：拉黑 / 静音（与 follows.php 同形态：{<操作者小写邮箱>:[<目标邮箱>...]}）
+define('BLOCKS_FILE', DATA_DIR . 'blocks.php');
+define('MUTES_FILE',  DATA_DIR . 'mutes.php');
+
 // 守卫前缀（§7）：.php 后缀 + exit 守卫，防 nginx 直接吐数据
 define('GUARD', "<?php http_response_code(403); exit; ?>\n");
 
@@ -115,6 +119,140 @@ function db_transact_json($path, $default, callable $mutator) {
     }
 }
 
+/*
+ * 多文件临界区事务（v3.6.0）：与 db_transact_json 同风格，但跨多个数据文件原子。
+ * 用途：Block 写 blocks 边 + 删 follows 互关边必须同一原子事务（硬约束，不得拆成两次 db_transact_json）。
+ *  - $files = [path => default, ...]
+ *  - 按路径字符串升序逐个 flock(LOCK_EX|LOCK_NB)，10ms 退避，约 2s(200次) 超时返回 false；
+ *    统一加锁顺序避免多文件交叉死锁；任一文件拿不到锁 → 释放已持锁并返回 false。
+ *  - 全部拿到锁后读取全部数据进 $dataMap[path=>data] → 调 $mutator($dataMap)：
+ *      返回新的 $dataMap（只返回被改动的键即可）；返回 null 表示无改动、不落盘。
+ *  - 全部 db_write_json 落盘；finally 全部放锁。
+ *  - true=成功(或无改动)；false=拿不到锁/写失败（调用方回 err:"busy"/"io"）。
+ */
+function db_transact_multi(array $files, callable $mutator) {
+    $paths = array_keys($files);
+    sort($paths, SORT_STRING);   // 统一加锁顺序，防多文件交叉死锁
+
+    $locked = [];   // path => lock handle
+    foreach ($paths as $p) {
+        $dir = dirname($p);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0775, true);
+        }
+        $lf = @fopen($p . '.lock', 'c+');
+        if (!$lf) {
+            foreach ($locked as $_lf) { flock($_lf, LOCK_UN); fclose($_lf); }
+            return false;
+        }
+        $attempts = 0;
+        $wouldBlock = 0;
+        while (!flock($lf, LOCK_EX | LOCK_NB, $wouldBlock)) {
+            if (++$attempts >= 200) {   // ~2s 超时
+                fclose($lf);
+                foreach ($locked as $_lf) { flock($_lf, LOCK_UN); fclose($_lf); }
+                return false;
+            }
+            usleep(10000);              // 10ms 退避
+        }
+        $locked[$p] = $lf;
+    }
+
+    try {
+        $dataMap = [];
+        foreach ($paths as $p) {
+            $d = db_read_json($p, $files[$p]);
+            $dataMap[$p] = is_array($d) ? $d : $files[$p];
+        }
+        $newMap = $mutator($dataMap);
+        if ($newMap === null) return true;   // 无改动
+        $ok = true;
+        foreach ($paths as $p) {
+            if (array_key_exists($p, $newMap)) {
+                if (!db_write_json($p, $newMap[$p])) $ok = false;
+            }
+        }
+        return $ok;
+    } finally {
+        foreach ($locked as $_lf) {
+            flock($_lf, LOCK_UN);
+            fclose($_lf);
+        }
+    }
+}
+
+// ---------- 用户关系网：拉黑 / 静音（v3.6.0） ----------
+// 数据形态与 follows.php 一致：{<操作者小写邮箱>:[<目标邮箱>...]}
+// 关系辅助读函数（可重复调用，幂等去重）。
+
+// 该用户拉黑的所有人（幂等去重后）
+function block_list($email) {
+    $email = strtolower(trim((string)$email));
+    if ($email === '') return [];
+    $all = db_read_json(BLOCKS_FILE, []);
+    $list = $all[$email] ?? [];
+    return is_array($list) ? array_values(array_unique($list)) : [];
+}
+
+// 该用户静音的所有人（幂等去重后）
+function mute_list($email) {
+    $email = strtolower(trim((string)$email));
+    if ($email === '') return [];
+    $all = db_read_json(MUTES_FILE, []);
+    $list = $all[$email] ?? [];
+    return is_array($list) ? array_values(array_unique($list)) : [];
+}
+
+// me 是否拉黑了 other
+function has_blocked($me, $other) {
+    return in_array(strtolower(trim((string)$other)), block_list($me), true);
+}
+
+// me 是否被 other 拉黑（即 other 拉黑了 me）
+function blocked_by($me, $other) {
+    return in_array(strtolower(trim((string)$me)), block_list($other), true);
+}
+
+// me 是否静音了 other
+function is_muted($me, $other) {
+    return in_array(strtolower(trim((string)$other)), mute_list($me), true);
+}
+
+/*
+ * 互动准入判断（对齐 X 规格 §51，供 MVP-5/6/7 复用）。
+ * 判断顺序（短-circuit，命中即 false）：
+ *   ① Account status：$target 不存在于 users 或 banned → false
+ *   ② Block：has_blocked(actor,target) 或 blocked_by(actor,target)（Block 双向阻断）→ false
+ *   ③ DM Block：本期无独立 DM Block（MVP-7 再扩展），跳过
+ *   ④ Privacy：本产品无私密账号概念，跳过
+ *   ⑤ Follow：本期无"必须关注才能互动"的全局规则（reply_policy 是作者级设置，不在此处），跳过
+ *   ⑥ 用户设置 / 内容安全：本期无对应配置，跳过
+ *   其余 → true
+ * 扩展点：DM Block（MVP-7）、私密账号、follow-gate、作者级 reply_policy 之后的内容安全过滤。
+ * $action 仅作语义标签留存，本期不参与判断（各动作阻断规则一致）。
+ */
+function can_interact($actor, $target, $action = '') {
+    $actor  = strtolower(trim((string)$actor));
+    $target = strtolower(trim((string)$target));
+    if ($actor === '' || $target === '') return false;
+
+    // ① Account status：目标必须存在且未被封禁
+    $users = load_users();
+    if (!isset($users['users'][$target]) || !is_array($users['users'][$target])) return false;
+    if (!empty($users['users'][$target]['banned'])) return false;
+
+    // ② Block：双向阻断（任一方拉黑对方都不可互动）
+    if (has_blocked($actor, $target)) return false;
+    if (blocked_by($actor, $target)) return false;
+
+    // ③ DM Block：本期无独立 DM Block（MVP-7 扩展），跳过
+    // ④ Privacy：本产品无私密账号概念，跳过
+    // ⑤ Follow：本期无全局 follow-gate（reply_policy 属作者级，不在此处），跳过
+    // ⑥ 用户设置 / 内容安全：本期无对应配置，跳过
+
+    return true;
+}
+
 // ---------- 配置 ----------
 function load_config() {
     if (!is_file(CONFIG_FILE)) return [];
@@ -190,6 +328,7 @@ function public_user($u) {
         'email'    => $u['email'] ?? '',
         'nickname' => $u['nickname'] ?? '',
         'avatar'   => $u['avatar'] ?? 'zodiac:rat',
+        'bio'      => $u['bio'] ?? '',   // v3.6.0：个人简介（≤100字），老用户缺省兜底空串
         'role'     => $u['role'] ?? 'user',
         'banned'   => !empty($u['banned']),
         'created_at' => $u['created_at'] ?? '',
