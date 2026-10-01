@@ -755,7 +755,7 @@ footer .fb-link:hover{text-decoration:underline}
 <div id="auth-root" style="display:none"></div>
 <div id="app">
   <main id="main"></main>
-  <footer>考核小管家 v3.8.1 · 考核圈社交版<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
+  <footer>考核小管家 v3.8.2 · 考核圈社交版<button class="fb-link" data-action="contact-admin">联系管理员</button></footer>
 </div>
 <nav class="tabbar" id="tabbar">
   <button class="tb" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>首页</button>
@@ -889,12 +889,19 @@ function iconSvg(key, cls){
 /* ==== 状态与存储 ==== */
 var state = null;
 var storageOk = true;
+/* v3.8.2: 缓存按用户隔离 —— key = 'kaohe-guanjia-v1-' + 当前登录用户 email（未就绪时 anonymous 兜底）；
+   旧版全局 key 'kaohe-guanjia-v1' 仅用于一次性归属迁移，见 Store.migrateLegacy */
+var appBootFresh = false; /* 注册新用户首进 fresh 窗口：期间不读/写本地缓存、不推送云端，服务器应答后恢复 */
 var Store = {
-  KEY: 'kaohe-guanjia-v1',
+  LEGACY_KEY: 'kaohe-guanjia-v1',
+  key: function(){
+    var em = (Auth.user && Auth.user.email) ? Auth.user.email : 'anonymous';
+    return 'kaohe-guanjia-v1-' + em;
+  },
   load: function(){
     var d = null;
     try{
-      var raw = localStorage.getItem(this.KEY);
+      var raw = localStorage.getItem(this.key());
       if (raw){ var p = JSON.parse(raw); if (p && p.habits) d = p; }
       localStorage.setItem('__t','1'); localStorage.removeItem('__t');
       storageOk = true;
@@ -902,10 +909,28 @@ var Store = {
     return d ? normalize(d) : defaultData();
   },
   save: function(){
-    try{ localStorage.setItem(this.KEY, JSON.stringify(state)); storageOk = true; }
-    catch(e){ storageOk = false; }
+    /* fresh 窗口内不写本地缓存（等服务器数据到达再写） */
+    if (!appBootFresh){
+      try{ localStorage.setItem(this.key(), JSON.stringify(state)); storageOk = true; }
+      catch(e){ storageOk = false; }
+    } else { storageOk = true; }
     Sync.push();
     updateChip();
+  },
+  /* 旧版全局缓存一次性迁移（v3.8.2）：
+     仅当旧数据携带 userEmail 标记且 === 当前登录用户 email 时，迁入当前用户 per-user key（per-user key 已有数据则不覆盖）；
+     无法证明归属（无标记或标记不符）一律丢弃并删除旧 key —— 安全优先，绝不把他人数据带给当前用户或推上云端 */
+  migrateLegacy: function(){
+    try{
+      var raw = localStorage.getItem(this.LEGACY_KEY);
+      if (!raw) return;
+      var p = JSON.parse(raw);
+      if (p && p.userEmail && Auth.user && p.userEmail === Auth.user.email
+          && localStorage.getItem(this.key()) == null){
+        localStorage.setItem(this.key(), JSON.stringify(p));
+      }
+    }catch(e){}
+    try{ localStorage.removeItem(this.LEGACY_KEY); }catch(e){}
   }
 };
 /* NAS 后端同步：数据权威存 NAS，浏览器 localStorage 仅作离线降级缓存 */
@@ -930,6 +955,10 @@ var Sync = {
   },
   push: function(){
     var self = this;
+    /* v3.8.2 归属守卫：state 内 userEmail 与当前登录用户不一致时，判定为他账号残留数据，直接跳过本次推送（防串号上云） */
+    if (state && state.userEmail && Auth.user && state.userEmail !== Auth.user.email){ return this._queue || Promise.resolve(); }
+    /* v3.8.2 fresh 注册首进窗口内不推送：新用户零数据，等服务器数据应答后再恢复正常保存 */
+    if (appBootFresh){ return this._queue || Promise.resolve(); }
     if (!this._queue) this._queue = Promise.resolve();
     this._queue = this._queue.then(function(){
       return new Promise(function(res){
@@ -1116,7 +1145,7 @@ function renderAuth(){
   }
   document.getElementById('auth-root').innerHTML =
     '<div class="rk-wrap">' + brandHtml + body +
-      '<div class="rk-ver">考核圈 · 社交版第一页 v3.8.1</div>' +
+      '<div class="rk-ver">考核圈 · 社交版第一页 v3.8.2</div>' +
     '</div>';
   if (authMode === 'register'){
     refreshCaptcha();
@@ -1225,7 +1254,7 @@ function showRegSuccessModal(){
           '<div class="rk-done-title">注册成功</div>' +
           '<div class="rk-done-sub">欢迎加入考核圈</div>' +
           '<div class="rk-done-btns">' +
-            '<button type="button" class="rk-btn-blue" data-action="reg-follow">加入</button>' +
+            '<button type="button" class="rk-btn-blue" data-action="reg-follow">关注</button>' +
             '<button type="button" class="rk-btn-gray" data-action="reg-skip">跳过</button>' +
           '</div>' +
         '</div>'
@@ -1236,7 +1265,7 @@ function showRegSuccessModal(){
 }
 function doRegSkip(){
   closeModal();
-  enterApp(Auth.token, Auth.user);
+  enterApp(Auth.token, Auth.user, {fresh:true});
 }
 function doRegFollow(){
   if (regFollowBusy) return;
@@ -1247,13 +1276,13 @@ function doRegFollow(){
       if (res.json && res.json.ok){ toast('已关注管理员', 'good'); }
       else { toast((res.json && res.json.msg) || '关注失败，可稍后在社区页关注', 'warn'); }
       closeModal();
-      enterApp(Auth.token, Auth.user);
+      enterApp(Auth.token, Auth.user, {fresh:true});
     }).catch(function(){
       regFollowBusy = false;
       /* 关注接口失败仅提示、不阻塞进首页 */
       toast('网络异常，关注未完成，可稍后在社区页关注', 'warn');
       closeModal();
-      enterApp(Auth.token, Auth.user);
+      enterApp(Auth.token, Auth.user, {fresh:true});
     });
 }
 /* ==== 忘记密码：从登录页打开的两步弹窗 ==== */
@@ -1324,13 +1353,13 @@ function doForgotReset(){
       } else fgMsg('err', apiMsg(res));
     }).catch(function(){ fgMsg('err', '网络错误，请稍后重试'); });
 }
-function enterApp(token, user){
+function enterApp(token, user, opts){
   Auth.save(token, user);
   document.getElementById('auth-root').style.display = 'none';
   document.getElementById('app').style.display = '';
   var tb = document.getElementById('tabbar'); if (tb) tb.style.display = '';
   renderUserChip();
-  bootApp();
+  bootApp(opts); /* 注册新用户传 {fresh:true}：零数据进入，不继承任何本地缓存 */
 }
 function doLogout(){
   if (Auth.token){
@@ -1644,7 +1673,8 @@ function ensureAppBirth(){
   dates.sort();
   var birth = dates.length ? dates[0] : HabitEngine.today();
   state.createdAt = birth;
-  try{ localStorage.setItem(Store.KEY, JSON.stringify(state)); }catch(e){}
+  /* fresh 窗口内不写本地缓存 */
+  if (!appBootFresh){ try{ localStorage.setItem(Store.key(), JSON.stringify(state)); }catch(e){} }
   return birth;
 }
 function mondayOf(){
@@ -1655,7 +1685,7 @@ function mondayOf(){
 }
 function defaultData(){
   var mon = mondayOf();
-  return normalize({
+  var d = normalize({
     habits:[
       { id:uid(), name:'主动下楼扔垃圾', icon:'trash', color:'#16A34A', cycleDays:7, anchorDate:mon, requiredCount:7, minMinutes:0, baseRewardMin:15, boostEnabled:false, boostThresholdMin:60, boostRewardMin:30, penaltyMin:0, enabled:true, createdAt:HabitEngine.today() },
       { id:uid(), name:'阅读', icon:'book', color:'#2563EB', cycleDays:7, anchorDate:mon, requiredCount:7, minMinutes:30, baseRewardMin:15, boostEnabled:true, boostThresholdMin:60, boostRewardMin:30, penaltyMin:0, enabled:true, createdAt:HabitEngine.today() }
@@ -1664,6 +1694,9 @@ function defaultData(){
     account:{ balanceMin:0, totalEarnedMin:0, totalRedeemedMin:0, totalRedeemedYuan:0, totalUsedMin:0 },
     exchangeRate:{ minutes:30, yuan:10 }
   });
+  /* v3.8.2: 数据归属标记（Auth.user 未就绪时 null），供 Sync.push 守卫判定；normalize 透传未知字段，随存取保留 */
+  d.userEmail = (Auth.user && Auth.user.email) || null;
+  return d;
 }
 function habitById(id){ for (var i=0;i<state.habits.length;i++) if (state.habits[i].id===id) return state.habits[i]; return null; }
 function checkinFor(habitId, date){
@@ -4641,30 +4674,44 @@ document.addEventListener('change', function(e){
 });
 
 /* ==== 初始化（鉴权门禁 + 主应用启动） ==== */
-function bootApp(){
+function bootApp(opts){
+  opts = opts || {};
+  appBootFresh = !!opts.fresh;
+  /* v3.8.2：Auth.user 已就绪、读缓存之前，先做旧全局 key 的一次性归属迁移（无法证明归属则丢弃） */
+  Store.migrateLegacy();
+  var key = Store.key();
   var firstRun = false;
-  try{ firstRun = localStorage.getItem(Store.KEY)==null; }catch(e){ firstRun = true; }
-  state = Store.load();
+  try{ firstRun = localStorage.getItem(key)==null; }catch(e){ firstRun = true; }
+  if (appBootFresh){
+    /* 注册新用户首进：零数据，绝不加载/继承任何本地缓存；删除遗留旧 key；等服务器数据到达再写本地缓存 */
+    state = defaultData();
+    try{ localStorage.removeItem(Store.LEGACY_KEY); }catch(e){}
+  } else {
+    state = Store.load();
+  }
   ensureAppBirth();
   autoSettle();
   render();
-  if (firstRun) setTimeout(function(){ toast('欢迎使用！已预置「扔垃圾」「阅读」考核项，规则可在「考核项」页调整。','good'); }, 600);
+  if (!appBootFresh && firstRun) setTimeout(function(){ toast('欢迎使用！已预置「扔垃圾」「阅读」考核项，规则可在「考核项」页调整。','good'); }, 600);
   /* NAS 数据同步：服务器有数据则以其为准；服务器无数据且本机已有记录时推送上去 */
   Sync.load(function(err, server){
     if (!err && server){
       var srv = normalize(JSON.parse(JSON.stringify(server.data)));
+      /* 服务器旧数据无归属标记，补上当前登录用户 email，保证后续 push 守卫可用 */
+      srv.userEmail = (Auth.user && Auth.user.email) || null;
       if (JSON.stringify(state) !== JSON.stringify(srv)){
         state = srv;
         ensureAppBirth();
-        try{ localStorage.setItem(Store.KEY, JSON.stringify(state)); }catch(e){}
+        try{ localStorage.setItem(Store.key(), JSON.stringify(state)); }catch(e){}
         autoSettle();
         render();
         toast('已加载 NAS 云端数据', 'good');
       }
-    } else if (err && err.err === 'empty' && !firstRun){
-      Sync.push();  /* 云端无数据，把本机记录建立到云端 */
+    } else if (err && err.err === 'empty' && !firstRun && !appBootFresh){
+      Sync.push();  /* 云端无数据且本机已有当前用户有效记录时，建立到云端 */
     }
     /* 其他错误：服务器不可达，保持本地模式，下次操作自动重试同步 */
+    appBootFresh = false; /* 服务器已应答（数据/空/错误均算），fresh 保护窗口结束，恢复正常本地缓存与推送 */
   });
 }
 (function init(){
