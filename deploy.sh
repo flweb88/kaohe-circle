@@ -12,10 +12,11 @@ SRC_DIR="/Volumes/no2/项目/豆包/考核网站/考核小管家"
 NAS_WEB="/var/services/web"
 PHP_FILES="common.php auth.php profile.php admin.php forgot.php feedback.php avatar.php load.php save.php follow.php social.php media.php manifest_tool.php migrate_v355.php"
 
-echo "[1/5] NAS 侧 php -l 语法检查..."
+echo "[1/5] NAS 侧 php -l 语法检查（php84 优先，php82/默认 php 回退；可用 KAOHE_PHP_LINT 环境变量覆盖）..."
 $SSH "$NAS" "rm -rf /tmp/kaohe-lint && mkdir -p /tmp/kaohe-lint"
 tar -C "$SRC_DIR/kaohe-api" -cf - $PHP_FILES | $SSH "$NAS" "tar -C /tmp/kaohe-lint -xf -"
-$SSH "$NAS" 'for f in /tmp/kaohe-lint/*.php; do php -l "$f" >/dev/null || { echo "LINT FAIL: $f"; exit 1; }; done && echo LINT_ALL_OK'
+LINT_PHP="${KAOHE_PHP_LINT:-}"
+$SSH "$NAS" "if [ -n \"$LINT_PHP\" ]; then LP=\"$LINT_PHP\"; else for c in /var/packages/PHP8.4/target/usr/local/bin/php84 /var/packages/PHP8.2/target/usr/local/bin/php82 /usr/bin/php php; do if [ -x \"\$c\" ]; then LP=\"\$c\"; break; fi; done; fi; echo \"lint-php=\$LP\"; for f in /tmp/kaohe-lint/*.php; do \"\$LP\" -l \"\$f\" >/dev/null || { echo \"LINT FAIL: \$f\"; exit 1; }; done && echo LINT_ALL_OK"
 
 echo "[2/5] 推送 kaohe.html 与 kaohe-api ..."
 $SSH "$NAS" "cat > $NAS_WEB/kaohe.html" < "$SRC_DIR/kaohe.html"
