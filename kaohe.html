@@ -950,6 +950,15 @@ var Sync = {
       });
     }).catch(function(e){ cb(e, null); });
   },
+  _saveFailToastAt: 0,
+  /* v3.8.4：保存失败限频提示（15s 一次，防刷屏）；失败不抛错、不清队列，后续操作自动重试 */
+  _saveFail: function(){
+    var now = Date.now();
+    if (now - this._saveFailToastAt > 15000){
+      this._saveFailToastAt = now;
+      if (typeof toast === 'function') toast('数据保存失败，请检查网络/NAS', 'warn');
+    }
+  },
   push: function(){
     var self = this;
     /* v3.8.2 归属守卫：state 内 userEmail 与当前登录用户不一致时，判定为他账号残留数据，直接跳过本次推送（防串号上云） */
@@ -967,8 +976,12 @@ var Sync = {
           cache:'no-store'
         }).then(function(r){
           if (r.status === 401){ onAuthExpired(); res(); return; }
-          self._synced = true; res();
-        }).catch(function(){ self._synced = false; res(); });
+          /* v3.8.4：必须解析 save.php 响应体，HTTP 200 + {ok:false,err:'io'} 也算失败 */
+          return r.json().then(function(j){
+            if (j && j.ok){ self._synced = true; res(); }
+            else { self._synced = false; self._saveFail(); res(); }
+          });
+        }).catch(function(){ self._synced = false; self._saveFail(); res(); });
       });
     });
     return this._queue;
@@ -1142,7 +1155,7 @@ function renderAuth(){
   }
   document.getElementById('auth-root').innerHTML =
     '<div class="rk-wrap">' + brandHtml + body +
-      '<div class="rk-ver">考核圈 · 社交版第一页 v3.8.3</div>' +
+      '<div class="rk-ver">考核圈 · 社交版第一页 v3.8.4</div>' +
     '</div>';
   if (authMode === 'register'){
     refreshCaptcha();
@@ -1885,6 +1898,7 @@ function escHabitShort(h){
 function autoSettle(){
   var t = HabitEngine.today();
   var notes = [];
+  var settledAny = false;  /* v3.8.4：只要本轮产生了结算记录就必须落盘，不再依赖 notes.length */
   state.habits.forEach(function(h){
     if (!h.enabled || h.deleted) return;
     var prev = HabitEngine.prevCycleOf(h, t);
@@ -1892,6 +1906,7 @@ function autoSettle(){
     if (prev.end < h.createdAt) return;
     if (cycleSettled(h.id, prev)) return;
     var res = HabitEngine.settle(h, state.checkins, prev);
+    settledAny = true;
     state.settlements.push({ id:uid(), habitId:h.id, cycleStart:prev.start, cycleEnd:prev.end, count:res.count, required:res.required, rewardMin:res.reward, boost:res.boost, status:res.status, penaltyMin:res.penalty, settledAt:t });
     if (res.reward>0){ state.account.balanceMin += res.reward; state.account.totalEarnedMin += res.reward; }
     if (res.penalty>0){ state.account.balanceMin -= res.penalty; state.account.totalEarnedMin -= res.penalty; /* 允许扣成负值（欠账） */ }
@@ -1899,9 +1914,11 @@ function autoSettle(){
     else if (res.status==='pen') notes.push({ n:h.name, txt:'上个周期达到 '+res.count+'/'+res.required+' 次，扣除 '+res.penalty+' 分钟娱乐时间', good:false });
     else if (res.status==='full' && res.reward>0) notes.push({ n:h.name, txt:'上个周期达标 '+res.count+'/'+res.required+'，奖励 +'+res.reward+' 分钟娱乐时间', good:true });
     else if (res.status==='miss') notes.push({ n:h.name, txt:'上个周期未达标（'+res.count+'/'+res.required+'），无奖励', good:false });
+    else if (res.status==='full') notes.push({ n:h.name, txt:'上个周期达标 '+res.count+'/'+res.required+'，无额外奖励', good:false });
   });
+  /* v3.8.4：有结算变更即落盘+推云端（miss/无奖励也落盘）；toast 仍按 notes 逐条弹 */
+  if (settledAny){ Store.save(); }
   if (notes.length){
-    Store.save();
     setTimeout(function(){ notes.forEach(function(nt){ toast(nt.n+'：'+nt.txt, nt.good?'good':'warn'); }); }, 300);
   }
 }
@@ -2270,7 +2287,7 @@ function renderMe(){
       '<div class="mm-body"><div class="mm-t">退出登录</div><div class="mm-s">退出当前账号并返回登录页</div></div>' +
       '<span class="mm-arrow">' + arrowSvg + '</span></div>';
     body = '<div class="view-title">账号设置</div><div class="me-menu">' + rows + '</div>' +
-      '<footer>考核小管家 v3.8.3 · 考核圈社交版</footer>';
+      '<footer>考核小管家 v3.8.4 · 考核圈社交版</footer>';
   }
   return card + tabs + body;
 }
