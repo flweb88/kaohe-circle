@@ -90,3 +90,12 @@
   4. 补记弹窗日期下限随考核项周期自动联动
 - **实现**：新增 `resettleAfterBackfill` 函数；补记日期下限从 `cyc.start` 改为 `prevCyc.end`
 - **部署**：web 库（2026-10-14）
+
+### 5.7 v3.8.8 数据保护（防空数据覆盖云端）
+
+- **问题**：HTTPS 切换时本地 localStorage 缓存丢了，重新登录后 Sync.push 把空的 usages/redemptions 推到云端，覆盖了原有数据
+- **功能**：Sync.push 前加两道闸门
+  1. **本地完整性校验**：`account.totalUsedMin > 0` 但 `usages.length === 0` → 拒绝 push，自动从云端拉取；`account.totalRedeemedMin > 0` 但 `redemptions.length === 0` → 拒绝 push
+  2. **云端数据量对比**：云端 `checkins.length > 本地 + 10` → 拒绝 push，自动从云端拉取
+- **实现**：新增 `_localStateIncomplete`、`_pullFromCloud` 辅助函数；云端不可达时降级为正常 push（不阻塞离线模式）
+- **部署**：web 库（2026-10-14）
