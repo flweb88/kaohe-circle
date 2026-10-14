@@ -3,13 +3,17 @@
 # 考核小管家 v3 部署脚本（Mac 上运行，SMB 本地源码推 NAS）
 # 用法: bash deploy.sh
 # 作用: 推送 kaohe.html + kaohe-api（13 个 PHP + 12 生肖头像）+ uploads 目录 + .gitignore 到 NAS，
-#       自动 git 提交版本，并验证外部地址 HTTP 200
+#       自动 git 提交版本；可选验证 KAOHE_VERIFY_URL
 # ============================================
 set -e
-NAS="flweb@192.168.50.2"
-SSH="ssh -o StrictHostKeyChecking=no"
-SRC_DIR="/Volumes/no2/项目/豆包/考核网站/考核小管家"
-NAS_WEB="/var/services/web"
+NAS="${KAOHE_NAS:-}"
+SSH="ssh -o ConnectTimeout=8"
+SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
+NAS_WEB="${KAOHE_WEB_ROOT:-/var/services/web}"
+if [ -z "$NAS" ]; then
+  echo "请先设置 KAOHE_NAS，例如：export KAOHE_NAS='用户名@NAS地址'" >&2
+  exit 2
+fi
 PHP_FILES="common.php auth.php profile.php admin.php forgot.php feedback.php avatar.php load.php save.php follow.php social.php media.php manifest_tool.php migrate_v355.php blocks.php mutes.php dms.php notifications.php account_cleanup.php"
 
 echo "[1/5] NAS 侧 php -l 语法检查（php84 优先，php82/默认 php 回退；可用 KAOHE_PHP_LINT 环境变量覆盖）..."
@@ -38,6 +42,10 @@ $SSH "$NAS" "cat > $NAS_WEB/.gitignore" < "$SRC_DIR/.gitignore"
 MSG="deploy $(date +%Y-%m-%d_%H%M)"
 $SSH "$NAS" "cd $NAS_WEB && git add -A && (git diff --cached --quiet || git commit -m \"$MSG\") && git log --oneline -3"
 
-echo "[5/5] 验证页面 ..."
-curl -s --max-time 10 -o /dev/null -w "HTTP %{http_code}\n" "http://flweb.synology.me:8081/kaohe.html"
+if [ -n "${KAOHE_VERIFY_URL:-}" ]; then
+  echo "[5/5] 验证页面 ..."
+  curl -s --max-time 10 -o /dev/null -w "HTTP %{http_code}\n" "$KAOHE_VERIFY_URL"
+else
+  echo "[5/5] 未设置 KAOHE_VERIFY_URL，跳过线上页面验证。"
+fi
 echo "Done."

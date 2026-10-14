@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+/* v3.8.5：将站点域名上的 HTTP 请求跳转到标准 HTTPS 端口；本地/IP 调试不跳 */
+if (location.protocol === 'http:' && location.hostname === 'flweb.synology.me') {
+  location.replace('https://' + location.hostname + location.pathname + location.search + location.hash);
+}
+</script>
 <title>考核小管家</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231D7CF2'/%3E%3Cpath d='M10 19l4 4 8-9' stroke='white' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
@@ -1155,7 +1161,7 @@ function renderAuth(){
   }
   document.getElementById('auth-root').innerHTML =
     '<div class="rk-wrap">' + brandHtml + body +
-      '<div class="rk-ver">考核圈 · 社交版第一页 v3.8.4</div>' +
+      '<div class="rk-ver">考核圈 · 社交版第一页 v3.8.5</div>' +
     '</div>';
   if (authMode === 'register'){
     refreshCaptcha();
@@ -2287,7 +2293,7 @@ function renderMe(){
       '<div class="mm-body"><div class="mm-t">退出登录</div><div class="mm-s">退出当前账号并返回登录页</div></div>' +
       '<span class="mm-arrow">' + arrowSvg + '</span></div>';
     body = '<div class="view-title">账号设置</div><div class="me-menu">' + rows + '</div>' +
-      '<footer>考核小管家 v3.8.4 · 考核圈社交版</footer>';
+      '<footer>考核小管家 v3.8.5 · 考核圈社交版</footer>';
   }
   return card + tabs + body;
 }
