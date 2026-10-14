@@ -10,6 +10,7 @@ test_unlink.txt
 artifacts/
 复核包-*
 UI概念图/e2e-*/
+UI概念图/UI概念图-12*.png
 _backup/
 _evidence/
 /kaohe-data/*
