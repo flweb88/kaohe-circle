@@ -99,3 +99,12 @@
   2. **云端数据量对比**：云端 `checkins.length > 本地 + 10` → 拒绝 push，自动从云端拉取
 - **实现**：新增 `_localStateIncomplete`、`_pullFromCloud` 辅助函数；云端不可达时降级为正常 push（不阻塞离线模式）
 - **部署**：web 库（2026-10-14）
+
+### 5.8 v3.8.9 数据自愈（修复 v3.8.8 闸门死循环）
+
+- **问题**：v3.8.8 上线后，云端数据本身不完整（totalUsedMin=20 但 usages=[]），每次加载后本地也不完整，push 闸门一直拦截，导致无法打卡
+- **修复**：normalize 函数加载数据时自动检测——汇总>0 但明细为空时，自动归零汇总字段（明细已无法恢复，汇总无意义），数据恢复一致
+- **逻辑**：
+  - `totalUsedMin > 0 && usages.length === 0` → `totalUsedMin = 0`
+  - `totalRedeemedMin > 0 && redemptions.length === 0` → `totalRedeemedMin = 0, totalRedeemedYuan = 0`
+- **部署**：web 库（2026-10-14）
