@@ -119,8 +119,8 @@
     "staging_accounts_hint": "真实测试账号见 workflow.config.local.json（本地不入库）；公开仓库不提供"
   },
   "cron": {
-    "triage": {"frequency": "每30分钟(工作时段)", "cron": "*/30 9-22 * * *"},
-    "sla_check": {"frequency": "每天3次", "cron": "3 9,14,20 * * *"}
+    "triage": {"frequency": "每小时一次(09-21点,避整点)", "cron": "13 9-21 * * *", "note": "家庭项目每小时例行巡检足够且省额度；P0 不依赖例行巡检，由用户在会话即时触发"},
+    "sla_check": {"frequency": "每天3次(09:03/14:03/20:03)", "cron": "3 9,14,20 * * *"}
   },
   "working_hours": {"timezone": "Asia/Shanghai", "active": "09:00-22:00"},
   "p0_policy": {

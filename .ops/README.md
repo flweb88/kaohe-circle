@@ -30,7 +30,7 @@ Markdown 看板 + JSON 状态 + 审计日志（持久化，agent 非运行时也
 ```
 
 **关键推论**：
-- Agent 不运行时，**没有任何进程在自主修复**；自动化的粒度 = cron 唤醒间隔（默认 30 分钟巡检一次）。
+- Agent 不运行时，**没有任何进程在自主修复**；自动化的粒度 = cron 唤醒间隔（维护巡检实际**每小时一次、09–21 点 :13 触发**；P0 不依赖例行巡检，由用户在会话即时触发）。
 - 「自动评估、自动分派、自动返工」= cron 唤醒 MainAgent 后，由 MainAgent 按本总纲执行；不是后台守护进程实时响应。
 - P0 工单要求「立即」时，**用户/监控直接在会话里发一句**即可立即触发，不必等 cron。
 - 看板状态、工单、审计日志全部落盘为 Markdown/JSON，保证 agent 会话结束后状态不丢。
@@ -48,16 +48,16 @@ Markdown 看板 + JSON 状态 + 审计日志（持久化，agent 非运行时也
 | | 复核包机制（`复核包-v3.8.x.md`） | ✅ 现成 | 根因/diff/测试/生产验证的复核模板 |
 | | staging 测试账号（隔离账号，仅本地配置） | ✅ 现成 | 隔离回归，不碰生产数据 |
 | | SSH 部署链路（`用户@NAS主机`，见本地配置） | ✅ 现成 | 密钥免密，`cat >` 管道推送 |
-| **需要配置的 Skill** | `doubao-cron-scheduler` | 🔧 已装待配 | 需创建「维护巡检」「SLA 检查」两个定时任务 |
-| | `verifier-hub` | 🔧 已装待配 | 交付前文件/产物校验，接入回归门禁 |
-| | `artifact-preview` | 🔧 已装待配 | 前端改动截图复核（kaohe.html 渲染） |
-| **需要新增的项目配置** | `.ops/` 目录与看板 | 📄 本次落地 | 见 §8 |
-| | 工单 schema、看板配置、SLA/抢占规则 | 📄 本次落地 | 机器可读 JSON + 人类可读 MD |
-| | 工单模板、回归报告模板 | 📄 本次落地 | 标准化产出 |
-| **需要编写的程序模块** | `scripts/triage.sh` | 💻 待建（委派子 Agent） | 扫 inbox → 校验字段 → 算 SLA 时限 → 看板落位 |
-| | `scripts/regression.sh` | 💻 待建（委派子 Agent） | php -l + 关键接口冒烟 + 版本号核验，出报告 |
-| | `scripts/sla-check.sh` | 💻 待建（委派子 Agent） | 扫在途工单 SLA，超时标红、输出告警清单 |
-| | `dashboard.html` | 💻 待建（委派子 Agent） | 读看板 JSON 渲染可视化看板（双泳道 + WIP + SLA） |
+| **需要配置的 Skill** | `doubao-cron-scheduler` | ✅ 已配置 | 「维护巡检」「SLA 检查」两个 cron 已录入并在运行（见 §5） |
+| | `verifier-hub` | 🔧 已装（可选） | 交付前文件/产物校验；当前回归门禁以 php -l + staging 场景为主，verifier 可按需补 |
+| | `artifact-preview` | ✅ 已用 | 产物渲染核对；本机无 Chromium，HTML 看板改用 Safari 打开 `file://` 截图验证（见 §8.1） |
+| **需要新增的项目配置** | `.ops/` 目录与看板 | ✅ 已落地 | 见 §8 |
+| | 工单 schema、看板配置、SLA/抢占规则 | ✅ 已落地 | 机器可读 JSON + 人类可读 MD；真值放 `workflow.config.local.json`（不入库） |
+| | 工单模板、回归报告模板 | ✅ 已落地 | 标准化产出 |
+| **需要编写的程序模块** | `scripts/triage.sh` | ✅ 已建成（子 Agent，2026-10-15） | 扫 inbox → 校验字段 → 算 SLA 时限 → 看板落位（只读，不自动定 P0） |
+| | `scripts/regression.sh` | ✅ 已建成（子 Agent） | php -l + 关键接口冒烟 + 版本号核验，出报告；本轮未做全流程演练 |
+| | `scripts/sla-check.sh` | ✅ 已建成（子 Agent） | 扫在途工单 SLA，超时标红、输出告警清单（只建议升级，不自动升级） |
+| | `render-dashboard.sh` + `dashboard.html` | ✅ 已建成（子 Agent） | 读看板 JSON 渲染可视化看板（双泳道 + WIP + SLA + 归档） |
 
 > 明确**不存在、不假设**的能力：常驻后台守护进程、工单实时推送通道、自动监控用户报错的探针（目前无前端错误上报后端）。这些在 §9 列为后续演进项，不在本次自动化承诺内。
 
@@ -135,16 +135,17 @@ Markdown 看板 + JSON 状态 + 审计日志（持久化，agent 非运行时也
 
 ### 4.1 优先级定义与 SLA
 
-| 级别 | 判定（满足任一） | 响应 SLA | 修复 SLA（工作时段） | 是否可抢占 |
+| 级别 | 判定（满足任一） | 响应 SLA | 修复 SLA | 是否可抢占 |
 |---|---|---|---|---|
-| **P0 致命** | 线上完全不可用；数据丢失/串号；登录/注册/打卡核心链路全挂；安全漏洞 | 15 分钟 | 2 小时 | ✅ 可抢占，立即唤醒 |
-| **P1 严重** | 核心功能（打卡/结算/同步/支付兑换）异常但有绕过；单用户数据错误 | 1 小时 | 8 小时 | ❌ 排队但插队到维护队首 |
-| **P2 一般** | 非核心功能缺陷；UI 显示错误；可稳定绕过 | 4 小时 | 2 个工作日 | ❌ 正常排队 |
-| **P3 轻微** | 文案、样式、边角 case、优化建议 | 1 个工作日 | 下个版本随版 | ❌ 填闲处理 |
+| **P0 致命** | 线上完全不可用；数据丢失/串号；登录/注册/打卡核心链路全挂；安全漏洞 | 15 分钟（全天） | 2 小时（全天） | ✅ 可抢占，立即唤醒 |
+| **P1 严重** | 核心功能（打卡/结算/同步/支付兑换）异常但有绕过；单用户数据错误 | 1 小时（全天） | 8 小时（全天） | ❌ 排队但插队到维护队首 |
+| **P2 一般** | 非核心功能缺陷；UI 显示错误；可稳定绕过 | 4 小时（每日 09–22） | 2 个工作时段日（每日 09–22，含周末） | ❌ 正常排队 |
+| **P3 轻微** | 文案、样式、边角 case、优化建议 | 1 个工作时段日（每日 09–22，含周末） | 下个版本随版 | ❌ 填闲处理 |
 
 - **SLA 计时**：`响应` = 从 INBOX 到 ASSIGNED；`修复` = 从 TRIAGED 到 DEPLOYING。
-- `BLOCKED` 状态 SLA 计时暂停（依赖外部，不算团队超时）。
+- `BLOCKED` 状态 SLA 计时暂停（依赖外部，不算团队超时）；`NEEDS-INFO` 同样暂停。
 - SLA 时限由 `triage.sh` 按优先级 + 当前时间算出 `due_at`，写入工单 frontmatter。
+- **计时窗口口径（与脚本实现一致，2026-10-15 端到端实测）**：P0/P1 全天 24h 计时（跨夜连续、不暂停）；P2/P3 仅在每日 09:00–22:00 窗口内顺延，**周末不暂停**（家庭打卡每天都在运行，周末也须响应），仅夜间 22:00–次日 09:00 暂停。详见 `config/sla-policy.md`。
 
 ### 4.2 自动 triage 规则（MainAgent 执行，脚本辅助）
 
@@ -163,12 +164,12 @@ Markdown 看板 + JSON 状态 + 审计日志（持久化，agent 非运行时也
 
 | 定时任务 | 频率 | 唤醒后 MainAgent 做什么 | 对应脚本 |
 |---|---|---|---|
-| **维护巡检** | 每 30 分钟（工作时段） | 扫 inbox 做 triage；READY 且 WIP 有空位则分派；VERIFYING 单做线上验证；推进卡住的单 | `triage.sh` |
-| **SLA 检查** | 每天 09:00、14:00、20:00 | 扫在途工单 SLA，临期/超时标红，输出告警清单，超时自动升级一级 | `sla-check.sh` |
+| **维护巡检** | **每小时一次（09–21 点，:13 触发）** | 扫 inbox 做 triage；READY 且 WIP 有空位则分派；VERIFYING 单做线上验证；推进卡住的单 | `triage.sh` |
+| **SLA 检查** | 每天 09:03、14:03、20:03 | 扫在途工单 SLA，临期/超时标红，输出告警清单，**建议**升级（不自动升级，由 MainAgent 判定） | `sla-check.sh` |
 | **回归门禁** | 部署前由子 Agent 触发（非 cron） | 修复后必跑，失败自动返工 | `regression.sh` |
-| **看板渲染** | 每次状态变更后触发 | 刷新 dashboard.html 数据 | `board-render`（内置） |
+| **看板渲染** | 每次状态变更后触发 | 刷新 dashboard.html 数据 | `render-dashboard.sh` |
 
-> cron 只负责「唤醒 + 执行 query」。query 内写死：读哪个看板、跑哪个脚本、按什么规则分派/升级/告警。具体 cron 任务的 query 文本见 `config/cron-tasks.md`（待建，子 Agent 落地时一并配）。
+> cron 只负责「唤醒 + 执行 query」。query 内写死：读哪个看板、跑哪个脚本、按什么规则分派/升级/告警。两个任务均已录入系统并在运行（2026-10-15），完整 query 文本见 `config/cron-tasks.md`，频率以该文件与 `workflow.config.json` §cron 为准（已与系统实际任务核对一致）。
 
 ---
 
@@ -225,36 +226,62 @@ restore_action: "恢复 F-0207，开发 WIP 回到 1"
 
 ```
 .ops/
-├── README.md                       # 本总纲（工作流设计）
-├── maintenance-board.md            # 【运行态】维护看板（双泳道 + 状态 + WIP + SLA）
+├── README.md                       # 本总纲（工作流设计 + 实测记录）
+├── maintenance-board.md            # 【运行态】维护看板（双泳道 + 状态 + WIP + SLA，唯一事实源）
 ├── config/
-│   ├── workflow.config.json        # 机器可读：WIP、SLA 时限、路径、模块映射、cron 节奏
+│   ├── workflow.config.json        # 机器可读（入库，脱敏占位）：WIP、SLA、路径、模块映射、cron
+│   ├── workflow.config.local.json  # 【不入库】真值：NAS SSH、线上 URL、测试账号（从 .local.example.json 复制）
 │   ├── triage-rules.md             # 工单评估/分级/模块归属规则
-│   └── sla-policy.md               # SLA 策略与升级规则
-├── inbox/                          # 新工单投递区（一单一 md）
-├── tickets/                        # 工单档案（M-xxxx.md，含完整处理记录）
-├── audit/                          # P0 抢占审计日志
+│   ├── sla-policy.md               # SLA 策略与升级规则
+│   └── cron-tasks.md               # 两个 cron 任务的 schedule 与完整 query
+├── inbox/                          # 新工单投递区（运行态，仅 .gitkeep 入库）
+├── tickets/                        # 工单档案（运行态，M-xxxx.md，仅 .gitkeep 入库）
+├── audit/                          # P0 抢占审计日志（运行态，仅 .gitkeep 入库）
 ├── templates/
 │   ├── bug-ticket.md               # 工单模板
 │   └── regression-report.md        # 回归报告模板
-├── scripts/                        # 待建：triage / sla-check / regression / render
-├── evidence/                       # 回归与验证证据（按工单分目录）
-└── dashboard.html                  # 待建：可视化看板
+├── scripts/                        # triage.sh / sla-check.sh / regression.sh / render-dashboard.sh
+│   └── run/                        # 脚本运行态产物（board-data.js、triage-建议.json，不入库）
+├── evidence/                       # 回归与验证证据（按工单分目录，不入库）
+└── dashboard.html                  # 可视化看板（读 scripts/run/board-data.js，file:// 可直接打开）
 ```
 
 ### 落地步骤
 - [x] 步骤 1：本总纲（MainAgent）
 - [x] 步骤 2：维护看板、config、SLA/规则、模板（MainAgent，工作文档）
-- [ ] 步骤 3：委派子 Agent 编写 `triage.sh / sla-check.sh / regression.sh / dashboard.html`
-- [ ] 步骤 4：配置 cron「维护巡检」「SLA 检查」两个定时任务
-- [ ] 步骤 5：用 1 个历史 bug 做端到端演练（dry-run，验证看板流转）
-- [ ] 步骤 6：提交 GitHub（`.ops/` 入库，脚本入库，证据/日志按 .gitignore 排除）
+- [x] 步骤 3：委派子 Agent 编写 `triage.sh / sla-check.sh / regression.sh / render-dashboard.sh` + `dashboard.html`
+- [x] 步骤 4：配置 cron「维护巡检」「SLA 检查」两个定时任务（已录入并在运行，见 §5）
+- [x] 步骤 5：端到端演练（见 §8.1）：三脚本空态/判定/SLA 实测 + 看板 Safari 真实数据渲染；并以真实工单 M-0001 走完整「修复→回归→部署→归档」闭环
+- [x] 步骤 6：提交 GitHub（`.ops/` 入库、脚本入库；运行态证据/日志/真值配置按 .gitignore 排除；commit `e49ec28` / `63d803d`）
+
+### 8.1 端到端实测记录（2026-10-15，任务 #15）
+
+在不部署、不碰生产数据前提下，对自动化链路做四阶段实测，全部通过：
+
+- **A. 空态基线**：`triage.sh`（空 inbox）、`sla-check.sh`（跳过 DONE 单）、`render-dashboard.sh` 均正常；`bash -n` 三脚本语法全过；render 输出 tickets=1（归档 M-0001）、WIP=0、alerts=0。
+- **B. triage 判定（5 用例，临时单测完即删）**：
+  - 缺必填字段（复现/期望/实际/环境）→ `NEEDS-INFO` 并给 4 条追问；
+  - 「打卡按钮没反应、打卡失败」→ P1、模块 `kaohe.html`；
+  - 「新注册登录不了、全是别人数据、串号、安全漏洞」→ P0、模块 `auth.php`+`kaohe.html`，且明确标注「P0 仅关键词初判，必须 MainAgent 复核后方可抢占」（脚本不自动定 P0）；
+  - 「错别字」→ P3；
+  - 与未关闭 READY 单 100% 相似 → 判重挂 `duplicate-of`，不新开。
+  - `--dry-run` 确认不落盘。
+- **C. SLA 计时（4 用例，临时单测完即删）**：超时 P2 → 🔴 超时 74h45m、建议升 P1；超时 P1 → 🔴 超时 5h45m、建议升 P0；BLOCKED → ⏸️ 暂停不计时；新建单 → 🟢 正常。脚本只**建议**升级，不自动升级。由此确认 P0/P1 全天 24h、P2/P3 每日 09–22 顺延且**周末不暂停**（口径已回写 §4.1 与 `sla-policy.md`）。
+- **D. dashboard 可视化**：本机无 Chromium，`artifact-preview` 仅出文本；改用 Safari 打开 `file://.../.ops/dashboard.html` 截图核对——双队列卡（维护 WIP 0/2、开发 WIP 0/1）、文件锁无、SLA 无告警、6 列维护泳道与开发泳道、P0 抢占空态、最近关闭归档表正确渲染 M-0001，中文正常、无版式错乱。数据链路 `board-data.js → DOM` 完整。
+
+**清理与隔离**：所有临时测试单测完即删；运行态产物（`scripts/run/`、`evidence/`、`tickets/`、`audit/`）均被 `.gitignore` 排除；演练后 `git status` 干净。
+
+**真值配置用法**：公开仓库的 `workflow.config.json` 用占位符（`YOUR_SSH_USER@YOUR_NAS_HOST_OR_IP`、`https://YOUR_DOMAIN/...`）。本机复制 `config/workflow.config.local.example.json` 为 `workflow.config.local.json` 填真值（NAS SSH、线上 URL、测试账号），脚本 `load_config` 深度合并覆盖占位，该文件不入库。
+
+**工单 frontmatter 解析约定**：解析器对带引号的字符串值允许行尾注释（`status: "READY"  # 注释`）；不规范取值回退 `UNKNOWN`。
+
+**遗留**：`regression.sh` 本轮未做全流程演练（M-0001 当时用 staging 手工场景完成回归）；后续可用 `--skip-online` / `--base-url` 在不部署前提下补一次。
 
 ---
 
 ## 9. 已知限制与后续演进（不假装已具备）
 
 1. **无前端错误自动上报**：iPhone Safari「Script error」这类问题目前靠用户截图，无探针自动建工单。后续可在 `kaohe.html` 加 `window.onerror` 把错误 POST 到 `kaohe-api/error_collect.php`，自动入 inbox（这是 FEAT 工单，不是本次维护流能力）。
-2. **非常驻**：最快响应受 cron 间隔（30 分钟）限制；P0 需在会话里即时触发或缩短巡检间隔。
+2. **非常驻**：例行维护巡检每小时一次（09–21 点 :13），非工作时段不唤醒，自动发现新单的延迟最坏约 1 小时；P0 需在会话里即时触发，不必等巡检。
 3. **回归以冒烟+staging 为主**：项目无单测框架，暂不承诺完整自动化覆盖；后续可补 PHP 接口测试集。
 4. **SLA 告警渠道**：当前告警落在看板标红 + cron 唤醒会话提示；要推送到微信/邮件需另接通知通道（项目已有 SMTP 配置可复用，列后续）。
