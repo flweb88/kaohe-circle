@@ -26,3 +26,17 @@ kaohe-data/uploads/*
 .env
 .env.*
 !.env.example
+
+# 维护看板工作流：框架入库，运行态数据（工单/证据/审计/日志/本地配置）一律排除
+# 运行态目录只保留 .gitkeep，其余任何文件（含非 .md 残留/临时文件）都不入库
+.ops/inbox/*
+!.ops/inbox/.gitkeep
+.ops/tickets/*
+!.ops/tickets/.gitkeep
+.ops/audit/*
+!.ops/audit/.gitkeep
+.ops/evidence/*
+!.ops/evidence/.gitkeep
+.ops/config/*.local.json
+.ops/scripts/run/*
+!.ops/scripts/run/.gitkeep

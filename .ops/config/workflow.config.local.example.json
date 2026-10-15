@@ -1,0 +1,16 @@
+{
+  "_comment": "复制本文件为 workflow.config.local.json 后填入真实部署值；该文件被 .gitignore 排除、不入库。脚本加载时会将其与 workflow.config.json 深度合并（同名键以本文件为准）。",
+  "deployment": {
+    "nas_ssh": "你的SSH用户@你的NAS主机或IP",
+    "online_url": "https://你的域名/kaohe.html"
+  },
+  "regression": {
+    "smoke_endpoints": [
+      {"name": "页面可访问", "url": "https://你的域名/kaohe.html", "expect_status": 200},
+      {"name": "登录接口存在", "api": "kaohe-api/auth.php"},
+      {"name": "load 接口存在", "api": "kaohe-api/load.php"},
+      {"name": "save 接口存在", "api": "kaohe-api/save.php"}
+    ],
+    "staging_accounts_hint": "你的 staging 测试账号（仅本地，不公开）"
+  }
+}

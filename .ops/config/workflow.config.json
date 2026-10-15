@@ -1,0 +1,133 @@
+{
+  "schema_version": "1.0",
+  "project": "kaohe-circle",
+  "updated": "2026-10-15",
+  "paths": {
+    "board": ".ops/maintenance-board.md",
+    "inbox": ".ops/inbox",
+    "tickets": ".ops/tickets",
+    "audit": ".ops/audit",
+    "evidence": ".ops/evidence",
+    "templates": ".ops/templates",
+    "scripts": ".ops/scripts",
+    "dashboard": ".ops/dashboard.html",
+    "frontend": "kaohe.html",
+    "api_dir": "kaohe-api",
+    "deploy_script": "deploy.sh"
+  },
+  "deployment": {
+    "nas_ssh": "YOUR_SSH_USER@YOUR_NAS_HOST_OR_IP",
+    "nas_web_root": "/var/services/web",
+    "online_url": "https://YOUR_DOMAIN/kaohe.html",
+    "php_lint_candidates": [
+      "/var/packages/PHP8.4/target/usr/local/bin/php84",
+      "/var/packages/PHP8.2/target/usr/local/bin/php82",
+      "/usr/bin/php"
+    ],
+    "github_remote": "ssh://git@ssh.github.com:443/flweb88/kaohe-circle.git"
+  },
+  "queues": {
+    "maintenance": {
+      "prefix": "M-",
+      "board": ".ops/maintenance-board.md",
+      "wip_limit": 2,
+      "p0_wip_limit": 3,
+      "backlog_limit": 8,
+      "file_lock": "kaohe.html"
+    },
+    "development": {
+      "prefix": "F-",
+      "board": "MVP 文档 + 总览§3.1",
+      "wip_limit": 1,
+      "backlog_limit": 6,
+      "p0_preemptible_to": 0
+    }
+  },
+  "states": [
+    "INBOX",
+    "NEEDS-INFO",
+    "TRIAGED",
+    "READY",
+    "ASSIGNED",
+    "FIXING",
+    "REGRESSING",
+    "REWORK",
+    "DEPLOYING",
+    "VERIFYING",
+    "DONE",
+    "BLOCKED",
+    "NEEDS-HUMAN"
+  ],
+  "priorities": {
+    "P0": {
+      "response_sla_minutes": 15,
+      "fix_sla_minutes": 120,
+      "preemptible": true,
+      "insert_position": "head",
+      "keywords": ["打不开", "数据丢", "数据被清", "串号", "串用户", "登不上", "登录不了", "注册不了", "安全", "漏洞", "全是别人", "无法访问", "500", "白屏"]
+    },
+    "P1": {
+      "response_sla_minutes": 60,
+      "fix_sla_minutes": 480,
+      "preemptible": false,
+      "insert_position": "maintenance_head",
+      "keywords": ["打卡没反应", "打卡失败", "结算没到账", "结算不入账", "同步失败", "兑换错误", "娱乐时间", "补卡", "推送失败"]
+    },
+    "P2": {
+      "response_sla_minutes": 240,
+      "fix_sla_minutes": 2880,
+      "preemptible": false,
+      "insert_position": "tail",
+      "keywords": ["显示错误", "UI", "样式", "按钮", "文案错位", "重复显示", "不更新"]
+    },
+    "P3": {
+      "response_sla_minutes": 1440,
+      "fix_sla_minutes": 10080,
+      "preemptible": false,
+      "insert_position": "tail",
+      "keywords": ["错别字", "建议", "优化", "边角", "细节", "对齐"]
+    }
+  },
+  "module_map": {
+    "kaohe.html": ["打卡", "结算", "补卡", "页面", "UI", "白屏", "script error", "本地", "跳转", "https"],
+    "kaohe-api/auth.php": ["登录", "注册", "登不上", "密码", "token", "会话"],
+    "kaohe-api/save.php": ["保存", "推送", "同步失败", "数据没存", "覆盖"],
+    "kaohe-api/load.php": ["拉取", "加载", "数据不显示", "云端"],
+    "kaohe-api/social.php": ["动态", "评论", "点赞", "转发", "关注", "帖子", "feed"],
+    "kaohe-api/dms.php": ["私信", "消息", "通知"],
+    "kaohe-api/account_cleanup.php": ["删除账号", "注销", "管理员", "数据清理"],
+    "kaohe-api/admin.php": ["邀请码", "管理员", "后台配置"],
+    "kaohe-api/profile.php": ["头像", "昵称", "个人资料", "主页"],
+    "kaohe-api/media.php": ["图片", "上传", "视频", "压缩", "媒体"]
+  },
+  "auto_triage": {
+    "required_fields": ["title", "reproduce", "expected", "actual", "environment"],
+    "missing_info_state": "NEEDS-INFO",
+    "duplicate_similarity": "title+symptom",
+    "max_rework": 2,
+    "rework_exhausted_state": "NEEDS-HUMAN"
+  },
+  "regression": {
+    "lint_all_php": true,
+    "smoke_endpoints": [
+      {"name": "页面可访问", "url": "https://YOUR_DOMAIN/kaohe.html", "expect_status": 200},
+      {"name": "登录接口存在", "api": "kaohe-api/auth.php"},
+      {"name": "load 接口存在", "api": "kaohe-api/load.php"},
+      {"name": "save 接口存在", "api": "kaohe-api/save.php"}
+    ],
+    "version_strings_must_match": ["rk-ver", "footer"],
+    "staging_accounts_hint": "真实测试账号见 workflow.config.local.json（本地不入库）；公开仓库不提供"
+  },
+  "cron": {
+    "triage": {"frequency": "每30分钟(工作时段)", "cron": "*/30 9-22 * * *"},
+    "sla_check": {"frequency": "每天3次", "cron": "3 9,14,20 * * *"}
+  },
+  "working_hours": {"timezone": "Asia/Shanghai", "active": "09:00-22:00"},
+  "p0_policy": {
+    "auto_preempt": true,
+    "must_audit": true,
+    "audit_dir": ".ops/audit",
+    "freeze_progress_first": true,
+    "restore_after_done": true
+  }
+}

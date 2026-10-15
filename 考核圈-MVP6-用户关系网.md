@@ -83,8 +83,8 @@ X 式用户关系网完整化：关注/取关、正在关注/粉丝列表、用�
 ### 7.2 上线登记（2026-10-01）
 
 - **已上线**：`bash deploy.sh` 全流程成功（NAS php84 lint 16 文件全过 → 推送 kaohe.html+16 PHP → web 库 commit `749b7df` → 外部 HTTP 200）。
-- **部署冒烟全过**：版本号 v3.6.0；既有数据回归（manifest md5 `0071bfe0815f2d038ce52d6c12c6211e`=5 items、posts 9 items、flweb01 admin 完好）；新功能链路（user_profile/关注互关/列表分页 relation/拉黑删互关+403 阻断+取消恢复/静音 feed 过滤+对方不知情/注册推荐闭环/bio 编辑/remove_follower）；上传下载抽测（raw 下载与上传字节一致）。
-- **线上基线已恢复**：测试账号/测试帖/测试媒体/关系数据全部清理，users 仅 flweb01、manifest md5 与属主恢复、无临时脚本残留。
+- **部署冒烟全过**：版本号 v3.6.0；既有数据回归（manifest md5 `0071bfe0815f2d038ce52d6c12c6211e`=5 items、posts 9 items、管理员账号完好）；新功能链路（user_profile/关注互关/列表分页 relation/拉黑删互关+403 阻断+取消恢复/静音 feed 过滤+对方不知情/注册推荐闭环/bio 编辑/remove_follower）；上传下载抽测（raw 下载与上传字节一致）。
+- **线上基线已恢复**：测试账号/测试帖/测试媒体/关系数据全部清理，users 仅保留管理员、manifest md5 与属主恢复、无临时脚本残留。
 
 ## 8. 维护与更新规则
 

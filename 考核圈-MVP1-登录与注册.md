@@ -22,7 +22,7 @@
 ## 3. 数据 / 接口
 
 - 沿用：kaohe-api/auth.php、profile.php、forgot.php、avatar.php、follow.php；kaohe-data/users.php、config.php、captchas.php、avatars/
-- 防滥用四条保持：邀请码（KAOHE2026）、算术验证码、注册限速（10min/同 IP+UA 5 次）、封号
+- 防滥用四条保持：邀请码（管理员设置）、算术验证码、注册限速（10min/同 IP+UA 5 次）、封号
 - 同提交包含但**未部署**的 `kaohe-api/social.php` 雏形（feed/post/like/comment/repost/bookmark/follow/notify 等 18 个动作）——见 [MVP-5](./考核圈-MVP5-动态核心.md) §2 整合说明（该雏形已由 MVP-5 于 v3.5.0 整合重写并部署上线）
 
 ## 4. 验收结论
