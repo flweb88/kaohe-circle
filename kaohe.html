@@ -1190,14 +1190,14 @@ function renderAuth(){
   var body = '';
   if (authMode === 'login'){
     body = '' +
-      '<div class="rk-card">' +
+      '<form class="rk-card" id="lg-form" novalidate autocomplete="on">' +
         errHtml +
-        rkFieldHtml(RK_ICO.mail, '<input type="email" id="lg-email" placeholder="邮箱账号" autocomplete="username">') +
-        rkFieldHtml(RK_ICO.lock, '<input type="password" id="lg-pwd" placeholder="登录密码" autocomplete="current-password">' +
+        rkFieldHtml(RK_ICO.mail, '<input type="email" id="lg-email" name="email" placeholder="邮箱账号" autocomplete="username">') +
+        rkFieldHtml(RK_ICO.lock, '<input type="password" id="lg-pwd" name="password" placeholder="登录密码" autocomplete="current-password">' +
           '<button type="button" class="rk-eye" data-action="toggle-pw-eye" data-target="lg-pwd" aria-label="显示或隐藏密码">' + RK_ICO.eye + '</button>') +
         '<div class="rk-forgot"><button type="button" data-action="open-forgot">忘记密码？</button></div>' +
-        '<button class="rk-btn-blue" data-action="login-ok">登录</button>' +
-      '</div>' +
+        '<button type="submit" class="rk-btn-blue">登录</button>' +
+      '</form>' +
       '<div class="rk-switch">还没有账号？<button type="button" data-action="auth-switch" data-mode="register">注册</button></div>';
   } else {
     body = '' +
@@ -1228,7 +1228,7 @@ function renderAuth(){
   }
   document.getElementById('auth-root').innerHTML =
     '<div class="rk-wrap">' + brandHtml + body +
-      '<div class="rk-ver">考核圈 · 社交版第一页 v3.8.9</div>' +
+      '<div class="rk-ver">考核圈 · 社交版第一页 v3.9.0</div>' +
     '</div>';
   if (authMode === 'register'){
     refreshCaptcha();
@@ -2401,7 +2401,7 @@ function renderMe(){
       '<div class="mm-body"><div class="mm-t">退出登录</div><div class="mm-s">退出当前账号并返回登录页</div></div>' +
       '<span class="mm-arrow">' + arrowSvg + '</span></div>';
     body = '<div class="view-title">账号设置</div><div class="me-menu">' + rows + '</div>' +
-      '<footer>考核小管家 v3.8.9 · 考核圈社交版</footer>';
+      '<footer>考核小管家 v3.9.0 · 考核圈社交版</footer>';
   }
   return card + tabs + body;
 }
@@ -4668,7 +4668,6 @@ function handleAction(el, e){
       if (authMode !== 'forgot') forgotStep = 1;
       renderAuth(); break;
     case 'refresh-captcha': refreshCaptcha(); break;
-    case 'login-ok': doLogin(); break;
     case 'register-ok': doRegister(); break;
     case 'forgot-request': doForgotRequest(); break;
     case 'forgot-reset': doForgotReset(); break;
@@ -4899,6 +4898,8 @@ document.addEventListener('click', function(e){
     else if (target.classList && target.classList.contains('modal-mask') && !target.classList.contains('rk-noclose')) closeModal();
   }
 });
+/* v3.9.0：登录表单回车/提交统一走 form submit 委托，innerHTML 重建后仍生效 */
+document.addEventListener('submit', function(e){ var f = e.target; if (f && f.id === 'lg-form'){ e.preventDefault(); doLogin(); } });
 document.addEventListener('input', function(e){
   if (e.target && e.target.id==='redeem-inp'){
     var v = parseInt(e.target.value,10);
