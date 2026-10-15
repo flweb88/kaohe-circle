@@ -64,11 +64,20 @@ if ($action === 'register') {
     }
     $users['reg_log'] = $rl;
 
-    // 3) 邀请码
+    // 3) 邀请码（提前判定是否首个用户：首个注册者跳过邀请码校验，保证全新部署可初始化）
+    $isFirst = count($users['users']) === 0;
     $inviteIn = isset($in['invite']) ? (string)$in['invite'] : '';
-    if (!hash_equals((string)($users['invite'] ?? ''), $inviteIn)) {
-        save_users($users);
-        json_out(['ok' => false, 'err' => 'invite', 'msg' => '邀请码错误']);
+    if (!$isFirst) {
+        $sysInvite = (string)($users['invite'] ?? '');
+        if ($sysInvite === '') {
+            // 系统未设置邀请码（管理员未开放）→ 一律拒绝，绝不允许空码/空==空放行
+            save_users($users);
+            json_out(['ok' => false, 'err' => 'invite', 'msg' => '注册暂未开放，请联系管理员']);
+        }
+        if (!hash_equals($sysInvite, $inviteIn)) {
+            save_users($users);
+            json_out(['ok' => false, 'err' => 'invite', 'msg' => '邀请码错误']);
+        }
     }
 
     // 4) 算术验证码（一次性消费）
@@ -85,8 +94,7 @@ if ($action === 'register') {
         json_out(['ok' => false, 'err' => 'exists', 'msg' => '该邮箱已注册，请直接登录']);
     }
 
-    // 6) 创建用户
-    $isFirst = count($users['users']) === 0;
+    // 6) 创建用户（$isFirst 已在第 3 步邀请码校验前计算，此处复用）
     $newToken = bin2hex(random_bytes(32));
     $users['users'][$email] = [
         'email' => $email,

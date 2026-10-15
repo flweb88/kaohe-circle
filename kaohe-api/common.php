@@ -274,7 +274,7 @@ function get_ip() {
 
 // ---------- 用户库 ----------
 function load_users() {
-    return db_read_json(USERS_FILE, ['users' => [], 'invite' => 'KAOHE2026', 'reg_log' => new stdClass(), 'forgot_log' => new stdClass(), 'migrated' => false]);
+    return db_read_json(USERS_FILE, ['users' => [], 'invite' => '', 'reg_log' => new stdClass(), 'forgot_log' => new stdClass(), 'migrated' => false]);
 }
 
 function save_users($u) {

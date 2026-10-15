@@ -21,7 +21,7 @@ set -uo pipefail
 umask 077
 
 # ---------------- 可配置常量 ----------------
-NAS_HOST="${KAOHE_NAS:-flweb@192.168.50.2}"
+NAS_HOST="${KAOHE_NAS:-}"
 NAS_UPLOADS="${KAOHE_NAS_UPLOADS:-/var/services/web/kaohe-data/uploads}"
 REMOTE_PHP="${KAOHE_REMOTE_PHP:-/var/packages/PHP8.2/target/usr/local/bin/php82}"
 REMOTE_TOOL="${KAOHE_REMOTE_TOOL:-/var/services/web/kaohe-api/manifest_tool.php}"
@@ -40,6 +40,13 @@ SSH_OPTS="-o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=8 -o Se
 
 CONF="$HOME/.config/kaohe-worker.conf"
 [ -f "$CONF" ] && . "$CONF"
+
+# M-0001：已去除硬编码内网地址；NAS_HOST 必须由 KAOHE_NAS 环境变量或 conf 显式提供。
+# 为空时明确报错并以非 0 退出（避免 ssh 以空主机名静默失败/误连）。
+if [ -z "$NAS_HOST" ]; then
+  echo "kaohe-worker: NAS_HOST 未设置。请设置 KAOHE_NAS，如 export KAOHE_NAS='用户@NAS主机'（亦可写入 ${CONF}）。" >&2
+  exit 3
+fi
 
 # ffmpeg 自动探测（launchd/非交互 shell 的 PATH 不含 ~/.local/bin，command -v 探测会落空 → 显式 fallback 到固定安装路径；v3.5.4 补丁）
 if [ -z "$FFMPEG_BIN" ]; then

@@ -34,6 +34,9 @@
     <dict>
         <key>KAOHE_FFMPEG</key>
         <string>/Users/fangliang/.local/bin/ffmpeg</string>
+        <!-- M-0001 脱敏：KAOHE_NAS 占位值，安装到本机时替换为真实「SSH用户@NAS主机」；切勿把真实内网地址提交进公开仓库 -->
+        <key>KAOHE_NAS</key>
+        <string>你的SSH用户@你的NAS主机</string>
     </dict>
 
     <!-- 登录即跑一轮 -->
