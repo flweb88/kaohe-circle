@@ -225,8 +225,10 @@ for fp in sorted(glob.glob(os.path.join(TICKETS, "*.md"))):
     if (fm.get("duplicate_of", "") or "").strip():
         badges.append("疑似重复")
 
+    tid = fm.get("id") or os.path.basename(fp)
     tickets.append({
-        "id": fm.get("id") or os.path.basename(fp),
+        "queue": "development" if tid.startswith("F-") else "maintenance",
+        "id": tid,
         "title": fm.get("title", "") or "",
         "priority": fm.get("priority", "") or "",
         "status": status,
@@ -249,17 +251,24 @@ for fp in sorted(glob.glob(os.path.join(TICKETS, "*.md"))):
         "badges": badges,
     })
 
-# —— WIP / backlog ——
-maint_wip = [t for t in tickets if t["status"] in WIP_STATES]
-backlog = [t for t in tickets if t["status"] in BACKLOG_STATES]
+# —— 按 id 前缀拆分：M-/其它 = 维护队列；F- = 开发队列（FEAT） ——
+maint_tickets = [t for t in tickets if t["queue"] != "development"]
+feat_tickets = [t for t in tickets if t["queue"] == "development"]
+
+# —— 维护口径 WIP / backlog（只遍历维护单，F- 绝不混入） ——
+maint_wip = [t for t in maint_tickets if t["status"] in WIP_STATES]
+backlog = [t for t in maint_tickets if t["status"] in BACKLOG_STATES]
 file_lock = "kaohe.html" if any(t["file_lock"] == "kaohe.html" for t in maint_wip) else None
 
-dev_wip = 0
+# —— 开发口径 WIP（以 F- 工单为真值）；board 正则读到的数字仅作对照 ——
+feat_wip = [t for t in feat_tickets if t["status"] != "DONE"]
+
+board_dev_wip = 0
 if os.path.exists(BOARD):
     btext = open(BOARD, encoding="utf-8").read()
     m = re.search(r"\|\s*修复/开发中\s*\|\s*(\d+)\s*\|", btext)
     if m:
-        dev_wip = int(m.group(1))
+        board_dev_wip = int(m.group(1))
 
 queues = {
     "maintenance": {
@@ -271,17 +280,32 @@ queues = {
         "file_lock": file_lock,
     },
     "development": {
-        "wip": dev_wip,
+        "wip": len(feat_wip),
+        "board_wip": board_dev_wip,
         "wip_limit": config["queues"]["development"]["wip_limit"],
         "backlog_limit": config["queues"]["development"]["backlog_limit"],
         "note": "详见各 MVP 文档与总览 §3.1；常态 WIP 1，P0 时可被抢占到 0",
     },
 }
 
-# —— SLA 告警与升级建议 ——
+# —— FEAT 已关闭明细（全部以 F- 为来源） ——
+feat_closed = [t for t in feat_tickets if t["status"] == "DONE"]
+feat_closed.sort(key=lambda t: t["closed_at"] or "", reverse=True)
+feat_recently_closed = [{
+    "id": t["id"], "title": t["title"], "priority": t["priority"], "status": t["status"],
+    "module": t["module"], "created_at": t["created_at"], "assigned_at": t["assigned_at"],
+    "deployed_at": t["deployed_at"], "closed_at": t["closed_at"], "version": "",
+} for t in feat_closed[:10]]
+for item in feat_recently_closed:
+    fp = os.path.join(TICKETS, item["id"] + ".md")
+    if os.path.exists(fp):
+        fm, _ = parse_doc(fp)
+        item["version"] = fm.get("version", "") or fm.get("resolved_version", "") or ""
+
+# —— SLA 告警与升级建议（仅维护单；F- 增强单不参与维护 SLA） ——
 sla_alerts = []
 escalations = []
-for t in tickets:
+for t in maint_tickets:
     st = t["sla"]["active"]["state"]
     if st in ("overdue", "due-soon"):
         prio = t["priority"]
@@ -320,8 +344,8 @@ for fp in sorted(glob.glob(os.path.join(AUDIT, "preempt-*.md"))):
         "audit_file": os.path.basename(fp),
     })
 
-# —— 最近关闭 ——
-closed = [t for t in tickets if t["status"] == "DONE"]
+# —— 最近关闭（维护口径，仅 M-/非 F- 单；F- 已关闭走 feat_recently_closed） ——
+closed = [t for t in maint_tickets if t["status"] == "DONE"]
 closed.sort(key=lambda t: t["closed_at"] or "", reverse=True)
 recently_closed = [{
     "id": t["id"], "title": t["title"], "priority": t["priority"],
@@ -357,9 +381,9 @@ if os.path.exists(BOARD):
             })
             have_ids.add(cid)
 
-# —— counts ——
+# —— counts（维护口径，仅维护单；F- 不计入维护状态计数） ——
 counts = {st: 0 for st in config["states"]}
-for t in tickets:
+for t in maint_tickets:
     counts[t["status"]] = counts.get(t["status"], 0) + 1
 
 data = {
@@ -374,6 +398,10 @@ data = {
         {"key": "DONE", "label": "已关闭", "statuses": ["DONE"]},
     ],
     "tickets": tickets,
+    "maint_tickets": maint_tickets,
+    "feat_tickets": feat_tickets,
+    "feat_wip": feat_wip,
+    "feat_recently_closed": feat_recently_closed,
     "sla_alerts": sla_alerts,
     "escalations": escalations,
     "p0_preemptions": p0_preemptions,
@@ -388,7 +416,7 @@ open(out_path, "w", encoding="utf-8").write(body)
 # 自检：去掉前缀/尾分号后必须是合法 JSON
 stripped = body[len("window.BOARD_DATA = "):].rstrip().rstrip(";")
 json.loads(stripped)
-print("board-data.js 已生成：%s（tickets=%d, WIP=%d, backlog=%d, alerts=%d, preemptions=%d）" % (
+print("board-data.js 已生成：%s（tickets=%d, 维护WIP=%d, 维护backlog=%d, 开发WIP=%d, alerts=%d, preemptions=%d）" % (
     out_path, len(tickets), queues["maintenance"]["wip"], queues["maintenance"]["backlog"],
-    len(sla_alerts), len(p0_preemptions)))
+    queues["development"]["wip"], len(sla_alerts), len(p0_preemptions)))
 PY

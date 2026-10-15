@@ -281,7 +281,7 @@
   html += '<div class="board">';
   columns.forEach(function(col){
     var stArr = col.statuses || [];
-    var list = tickets.filter(function(t){ return stArr.indexOf(t.status) !== -1; });
+    var list = tickets.filter(function(t){ return t.queue !== 'development' && stArr.indexOf(t.status) !== -1; });
     html += '<div class="col'+(list.length?'':' empty')+'">';
     html += '<div class="col-head"><span>'+esc(col.label||col.key)+'</span><span class="cnt">'+list.length+'</span></div>';
     if(!list.length){
@@ -293,13 +293,48 @@
   });
   html += '</div>';
 
-  /* 开发泳道（窄条浅色） */
+  /* 开发泳道（F- 明细区：在途卡片 + 最近关闭表） */
+  var featWip = data.feat_wip || [];
+  var featClosed = data.feat_recently_closed || [];
+  var boardWip = (qD.board_wip !== undefined && qD.board_wip !== null) ? qD.board_wip : null;
   html += '<div class="dev-lane">';
-  html += '<div class="lane-title"><span class="tag">开发泳道</span>FEAT · 前缀 F- · 不落在 .ops/tickets</div>';
+  html += '<div class="lane-title"><span class="tag">开发泳道</span>FEAT · 前缀 F- · 明细来自 .ops/tickets/F-*.md</div>';
   html += '<div class="dev-body">'+
-    '<span>开发 WIP <span class="big">'+devWip+' / '+devWipLim+'</span></span>'+
-    '<span style="color:var(--muted);font-size:12px;">（P0 时可被抢占到 0）</span>'+
+    '<span>开发在途 WIP <span class="big">'+devWip+' / '+devWipLim+'</span></span>'+
+    '<span style="color:var(--muted);font-size:12px;">（P0 时可被抢占到 0'+(boardWip!==null?('；看板手填值 '+boardWip+' 仅对照'):'')+'）</span>'+
     '<span style="color:var(--muted);">'+esc(devNote)+'</span></div>';
+
+  /* 开发在途卡片 */
+  html += '<div style="margin-top:14px;">';
+  html += '<div style="font-size:13px;font-weight:600;margin-bottom:8px;">开发在途（'+featWip.length+'）</div>';
+  if(!featWip.length){
+    html += '<div class="empty-note" style="text-align:left;padding:2px 0;">暂无开发在途工单</div>';
+  }else{
+    featWip.forEach(function(t){ html += cardTpl(t); });
+  }
+  html += '</div>';
+
+  /* 最近关闭（F-）表格 */
+  html += '<div style="margin-top:14px;">';
+  html += '<div style="font-size:13px;font-weight:600;margin-bottom:8px;">最近关闭（F-，'+featClosed.length+' 条）</div>';
+  if(!featClosed.length){
+    html += '<div class="empty-note" style="text-align:left;padding:2px 0;">暂无已关闭的开发增强单</div>';
+  }else{
+    html += '<table><thead><tr><th>ID</th><th>标题</th><th>优先级</th><th>状态</th><th>上线时间</th><th>关闭时间</th></tr></thead><tbody>';
+    featClosed.forEach(function(r){
+      var color = PRI_COLOR[r.priority]||'#9AA3AF';
+      html += '<tr>'+
+        '<td>'+esc(r.id)+'</td>'+
+        '<td>'+esc(r.title)+(r.version?' <span style="color:var(--muted);font-size:12px;">'+esc(r.version)+'</span>':'')+'</td>'+
+        '<td><span class="pri" style="background:'+color+'">'+esc(r.priority||'')+'</span></td>'+
+        '<td>'+esc(r.status||'')+'</td>'+
+        '<td>'+esc(fmtTime(r.deployed_at))+'</td>'+
+        '<td>'+esc(fmtTime(r.closed_at))+'</td>'+
+      '</tr>';
+    });
+    html += '</tbody></table>';
+  }
+  html += '</div>';
   html += '</div>';
   html += '</div>';
 
